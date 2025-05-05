@@ -13,13 +13,9 @@ return new class extends Migration
     {
         Schema::create('task_intern', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('task_id');
-            $table->unsignedBigInteger('intern_id');
+            $table->foreignId('task_id')->constrained()->onDelete('cascade');
+            $table->foreignId('intern_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            $table->softDeletes();
-
-            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('cascade');
-            $table->foreign('intern_id')->references('id')->on('interns')->onDelete('cascade');
         });
     }
 

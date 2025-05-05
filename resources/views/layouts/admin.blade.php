@@ -1,28 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
-    @vite('resources/css/app.css')
-</head>
-<body class="bg-gray-100 font-sans">
-    <div class="flex min-h-screen">
-        <aside class="w-64 bg-blue-800 text-white p-6 space-y-4">
-            <h2 class="text-xl font-bold mb-4">Admin Panel</h2>
-            <nav class="space-y-2">
-                <a href="{{ route('admin.dashboard') }}" class="block hover:text-gray-300">Dashboard</a>
-                {{-- <a href="{{ route('admin.interns.index') }}" class="block hover:text-gray-300">Manage Interns</a>
-                <a href="{{ route('admin.tasks.index') }}" class="block hover:text-gray-300">Manage Tasks</a>
-                <a href="{{ route('admin.messages.index') }}" class="block hover:text-gray-300">Messages</a> --}}
-                <form action="{{ route('admin.logout') }}" method="POST">@csrf
-                    <button class="mt-4 text-sm text-red-200 hover:text-red-400">Logout</button>
-                </form>
-            </nav>
-        </aside>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
-        <main class="flex-1 bg-gray-50">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>{{ config('app.name', 'Laravel') }}</title>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <style>
+        .modal-backdrop {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-content {
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+
+    <script>
+        // Setup AJAX CSRF token
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        // Global function to show alert messages
+        function showAlert(message, type = 'success') {
+            const alertClass = type === 'success' ?
+                'bg-green-100 border-green-500 text-green-700' :
+                'bg-red-100 border-red-500 text-red-700';
+
+            const alert = $('<div>')
+                .addClass(`${alertClass} border-l-4 p-4 mb-6 rounded`)
+                .attr('role', 'alert')
+                .html(`<p class="font-medium">${message}</p>`)
+                .hide();
+
+            $('.container').first().prepend(alert);
+            alert.fadeIn('slow');
+            setTimeout(() => alert.fadeOut('slow', function() {
+                $(this).remove();
+            }), 3000);
+        }
+    </script>
+</head>
+
+<body class="font-sans antialiased">
+    <div class="min-h-screen bg-gray-100">
+        @include('layouts.navigation')
+
+        <main class="py-4">
             @yield('content')
         </main>
     </div>
+
+    @stack('scripts')
 </body>
+
 </html>

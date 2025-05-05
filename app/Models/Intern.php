@@ -12,14 +12,18 @@ class Intern extends Authenticatable
 
     protected $guard = 'intern';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+    ];
 
     protected $hidden = ['password', 'remember_token'];
 
     // Relationships
     public function tasks()
     {
-        return $this->belongsToMany(Task::class)->withTimestamps();
+        return $this->belongsToMany(Task::class, 'task_intern');
     }
 
     public function comments()

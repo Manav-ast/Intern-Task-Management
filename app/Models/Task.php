@@ -19,7 +19,7 @@ class Task extends Model
 
     public function interns()
     {
-        return $this->belongsToMany(Intern::class)->withTimestamps();
+        return $this->belongsToMany(Intern::class, 'task_intern');
     }
 
     public function comments()
