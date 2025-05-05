@@ -6,11 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\Comment;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class CommentController extends Controller
 {
+    use AuthorizesRequests;
+
     public function store(Request $request, Task $task)
     {
+        $this->authorize('create-comments');
         $request->validate([
             'message' => 'required|string'
         ]);
@@ -33,6 +37,7 @@ class CommentController extends Controller
 
     public function destroy(Task $task, Comment $comment)
     {
+        $this->authorize('delete-comments');
         if ($comment->commentable_id !== auth('admin')->id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }

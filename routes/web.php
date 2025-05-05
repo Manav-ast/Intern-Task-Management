@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\InternController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\RoleController;
 
 require __DIR__ . '/user.php';
 // Admin Routes
@@ -41,4 +43,8 @@ Route::prefix('admin')->middleware('auth:admin')->name('admin.')->group(function
         Route::post('/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
         Route::delete('/{task}/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     });
+
+    // Admin Management Routes
+    Route::resource('admins', AdminController::class);
+    Route::resource('roles', RoleController::class);
 });

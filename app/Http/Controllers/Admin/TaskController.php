@@ -8,9 +8,12 @@ use App\Models\Intern;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class TaskController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index()
     {
         $tasks = Task::with('interns', 'admin')->latest()->paginate(10);
@@ -19,18 +22,21 @@ class TaskController extends Controller
 
     public function create()
     {
+        $this->authorize('create-tasks');
         $interns = Intern::all();
         return view('admin.tasks.create', compact('interns'));
     }
 
     public function show(Task $task)
     {
+        $this->authorize('view-tasks');
         $task->load(['interns', 'comments.commentable']);
         return view('admin.tasks.show', compact('task'));
     }
 
     public function store(StoreTaskRequest $request)
     {
+        $this->authorize('create-tasks');
         $task = Task::create([
             'title' => $request->title,
             'description' => $request->description,
@@ -46,6 +52,7 @@ class TaskController extends Controller
 
     public function edit(Task $task)
     {
+        $this->authorize('edit-tasks');
         $interns = Intern::all();
         $selectedInterns = $task->interns->pluck('id')->toArray();
         return view('admin.tasks.edit', compact('task', 'interns', 'selectedInterns'));
@@ -53,6 +60,7 @@ class TaskController extends Controller
 
     public function update(StoreTaskRequest $request, Task $task)
     {
+        $this->authorize('edit-tasks');
         $task->update([
             'title' => $request->title,
             'description' => $request->description,
@@ -67,7 +75,9 @@ class TaskController extends Controller
 
     public function destroy(Task $task)
     {
+
         try {
+            $this->authorize('delete-tasks');
             $task->delete();
             return redirect()->route('admin.tasks.index')->with('success', 'Task deleted successfully');
         } catch (\Exception $e) {
