@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('status', ['pending', 'in_progress', 'completed'])->default('pending');
             $table->unsignedBigInteger('created_by'); // admin who created the task
+            $table->date('due_date')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

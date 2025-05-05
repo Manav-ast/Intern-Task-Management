@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\StoreInternRequest;
 use App\Http\Requests\UpdateInternRequest;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class InternController extends Controller
 {
@@ -53,7 +54,21 @@ class InternController extends Controller
 
     public function destroy(Intern $intern)
     {
-        $intern->delete();
-        return redirect()->route('admin.interns.index')->with('success', 'Intern deleted.');
+        try {
+            // Check if intern has any associated tasks
+            if ($intern->tasks()->count() > 0) {
+                return response()->json([
+                    'error' => 'Cannot delete intern with assigned tasks. Please unassign tasks first.'
+                ], 422);
+            }
+
+            $intern->delete();
+            return response()->json(['message' => 'Intern deleted successfully']);
+        } catch (\Exception $e) {
+            Log::error('Error deleting intern: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to delete intern. Please try again.'
+            ], 500);
+        }
     }
 }

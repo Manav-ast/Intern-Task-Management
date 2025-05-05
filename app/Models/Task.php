@@ -9,7 +9,11 @@ class Task extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['title', 'description', 'status', 'created_by'];
+    protected $fillable = ['title', 'description', 'status', 'created_by', 'due_date'];
+
+    protected $casts = [
+        'due_date' => 'date'
+    ];
 
     // Relationships
     public function admin()

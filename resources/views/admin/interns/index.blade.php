@@ -41,7 +41,7 @@
                             <tr id="intern-row-{{ $intern->id }}"
                                 class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ $intern->name }}</div>
+                                    <div class="text-sm font-medium text-gray-900 intern-name">{{ $intern->name }}</div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-500">{{ $intern->email }}</div>
@@ -56,8 +56,7 @@
                                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                     </a>
-                                    <button type="button"
-                                        onclick="openDeleteModal('{{ $intern->id }}', '{{ $intern->name }}')"
+                                    <button type="button" onclick="showDeleteModal({{ $intern->id }})"
                                         class="text-red-600 hover:text-red-900 transition-colors duration-150 ease-in-out">
                                         <span class="hidden sm:inline">Delete</span>
                                         <svg class="w-5 h-5 inline-block sm:hidden" fill="none" stroke="currentColor"
@@ -109,6 +108,13 @@
             $(document).ready(function() {
                 let internIdToDelete = null;
 
+                // Set up CSRF token for all AJAX requests
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    }
+                });
+
                 // Auto-hide success message
                 if ($('#success-alert').length > 0) {
                     setTimeout(function() {
@@ -137,7 +143,11 @@
                         },
                         error: function(xhr) {
                             // Show error message
-                            showAlert('Error deleting intern. Please try again.', 'error');
+                            let errorMessage = 'Error deleting intern. Please try again.';
+                            if (xhr.responseJSON && xhr.responseJSON.error) {
+                                errorMessage = xhr.responseJSON.error;
+                            }
+                            showAlert(errorMessage, 'error');
                             closeModal('delete-modal');
                         }
                     });
@@ -149,8 +159,10 @@
                 });
             });
 
-            function openDeleteModal(internId, internName) {
+            function showDeleteModal(internId) {
                 internIdToDelete = internId;
+                // Get the intern name from the row
+                const internName = $(`#intern-row-${internId}`).find('.intern-name').text();
                 $('#intern-name-placeholder').text(internName);
                 openModal('delete-modal');
             }

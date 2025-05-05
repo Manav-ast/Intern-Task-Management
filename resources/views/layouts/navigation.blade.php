@@ -14,6 +14,10 @@
                         class="{{ request()->routeIs('admin.interns.*') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                         Manage Interns
                     </a>
+                    <a href="{{ route('admin.tasks.index') }}"
+                        class="{{ request()->routeIs('admin.tasks.*') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        Manage Tasks
+                    </a>
                 </div>
             </div>
             <div class="hidden sm:ml-6 sm:flex sm:items-center">

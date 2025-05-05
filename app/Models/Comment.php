@@ -9,7 +9,12 @@ class Comment extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['task_id', 'message'];
+    protected $fillable = [
+        'task_id',
+        'message',
+        'commentable_id',
+        'commentable_type'
+    ];
 
     // Relationships
     public function task()
