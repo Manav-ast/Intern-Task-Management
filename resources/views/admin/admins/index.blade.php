@@ -40,11 +40,14 @@
                                         class="text-gray-600 font-medium hover:underline">Edit</a>
                                 @endcan
                                 @can('delete-admins')
-                                    <form action="{{ route('admin.admins.destroy', $admin) }}" method="POST" class="inline">
+                                    <form action="{{ route('admin.admins.destroy', $admin) }}" method="POST" class="inline"
+                                        id="delete-admin-form-{{ $admin->id }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 font-medium hover:underline"
-                                            onclick="return confirm('Are you sure?')">Delete</button>
+                                        <button type="button" class="text-red-600 font-medium hover:underline"
+                                            onclick="confirmDelete('Delete Admin', 'Are you sure you want to delete this admin? This action cannot be undone.', () => document.getElementById('delete-admin-form-{{ $admin->id }}').submit())">
+                                            Delete
+                                        </button>
                                     </form>
                                 @endcan
                             </td>

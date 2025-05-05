@@ -35,11 +35,11 @@
                                     Edit Task
                                 </a>
                                 <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST"
-                                    class="flex-1 sm:flex-none">
+                                    class="flex-1 sm:flex-none" id="delete-task-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit"
-                                        onclick="return confirm('Are you sure you want to delete this task?')"
+                                    <button type="button"
+                                        onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form').submit())"
                                         class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition">
                                         Delete
                                     </button>
@@ -158,11 +158,12 @@
                                                     {{ $comment->created_at->diffForHumans() }}</p>
                                                 <form
                                                     action="{{ route('admin.tasks.comments.destroy', [$task, $comment]) }}"
-                                                    method="POST" class="inline">
+                                                    method="POST" class="inline"
+                                                    id="delete-comment-form-{{ $comment->id }}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit"
-                                                        onclick="return confirm('Are you sure you want to delete this comment?')"
+                                                    <button type="button"
+                                                        onclick="confirmDelete('Delete Comment', 'Are you sure you want to delete this comment? This action cannot be undone.', () => document.getElementById('delete-comment-form-{{ $comment->id }}').submit())"
                                                         class="text-red-600 hover:text-red-900">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                             viewBox="0 0 24 24">

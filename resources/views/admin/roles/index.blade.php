@@ -45,11 +45,14 @@
                                         class="text-gray-600 font-medium hover:underline">Edit</a>
                                 @endcan
                                 @can('delete-roles')
-                                    <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline">
+                                    <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline"
+                                        id="delete-role-form-{{ $role->id }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 font-medium hover:underline"
-                                            onclick="return confirm('Are you sure?')">Delete</button>
+                                        <button type="button" class="text-red-600 font-medium hover:underline"
+                                            onclick="confirmDelete('Delete Role', 'Are you sure you want to delete this role? This action cannot be undone.', () => document.getElementById('delete-role-form-{{ $role->id }}').submit())">
+                                            Delete
+                                        </button>
                                     </form>
                                 @endcan
                             </td>

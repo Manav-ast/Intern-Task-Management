@@ -10,6 +10,9 @@
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-minimal@5/minimal.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -60,6 +63,8 @@
         </main>
     </div>
 
+    <!-- Utility Scripts -->
+    <script src="{{ asset('js/utils.js') }}"></script>
     @stack('scripts')
 </body>
 

@@ -56,7 +56,8 @@
                                                 d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                         </svg>
                                     </a>
-                                    <button type="button" onclick="showDeleteModal({{ $intern->id }})"
+                                    <button type="button"
+                                        onclick="confirmDelete('Delete Intern', `Are you sure you want to delete ${$('#intern-row-' + {{ $intern->id }}).find('.intern-name').text()}? This action cannot be undone.`, () => deleteIntern({{ $intern->id }}))"
                                         class="text-red-600 hover:text-red-900 transition-colors duration-150 ease-in-out">
                                         <span class="hidden sm:inline">Delete</span>
                                         <svg class="w-5 h-5 inline-block sm:hidden" fill="none" stroke="currentColor"
@@ -74,107 +75,50 @@
         </div>
     </div>
 
-    <x-modal id="delete-modal">
-        <div class="sm:flex sm:items-start">
-            <div
-                class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
-            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Delete Intern</h3>
-                <div class="mt-2">
-                    <p class="text-sm text-gray-500">Are you sure you want to delete <span
-                            id="intern-name-placeholder"></span>? This action cannot be undone.</p>
-                </div>
-            </div>
-        </div>
-        <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-2">
-            <button type="button" id="confirm-delete"
-                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors duration-150 ease-in-out">
-                Delete
-            </button>
-            <button type="button" onclick="closeModal('delete-modal')"
-                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm transition-colors duration-150 ease-in-out">
-                Cancel
-            </button>
-        </div>
-    </x-modal>
-
     @push('scripts')
         <script>
             $(document).ready(function() {
-                let internIdToDelete = null;
-
-                // Set up CSRF token for all AJAX requests
-                $.ajaxSetup({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
                 // Auto-hide success message
                 if ($('#success-alert').length > 0) {
                     setTimeout(function() {
                         $('#success-alert').fadeOut('slow');
                     }, 3000);
                 }
-
-                // Delete confirmation
-                $('#confirm-delete').click(function() {
-                    if (!internIdToDelete) return;
-
-                    $.ajax({
-                        url: `/admin/interns/${internIdToDelete}`,
-                        type: 'DELETE',
-                        success: function(response) {
-                            // Remove the row with animation
-                            $(`#intern-row-${internIdToDelete}`).fadeOut('slow', function() {
-                                $(this).remove();
-                            });
-
-                            // Show success message
-                            showAlert('Intern deleted successfully');
-
-                            // Close modal
-                            closeModal('delete-modal');
-                        },
-                        error: function(xhr) {
-                            // Show error message
-                            let errorMessage = 'Error deleting intern. Please try again.';
-                            if (xhr.responseJSON && xhr.responseJSON.error) {
-                                errorMessage = xhr.responseJSON.error;
-                            }
-                            showAlert(errorMessage, 'error');
-                            closeModal('delete-modal');
-                        }
-                    });
-                });
-
-                // Close modal when clicking outside
-                $(document).on('click', '.modal-backdrop', function() {
-                    closeModal('delete-modal');
-                });
             });
 
-            function showDeleteModal(internId) {
-                internIdToDelete = internId;
-                // Get the intern name from the row
-                const internName = $(`#intern-row-${internId}`).find('.intern-name').text();
-                $('#intern-name-placeholder').text(internName);
-                openModal('delete-modal');
-            }
+            function deleteIntern(internId) {
+                $.ajax({
+                    url: `/admin/interns/${internId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        // Remove the row with animation
+                        $(`#intern-row-${internId}`).fadeOut('slow', function() {
+                            $(this).remove();
+                        });
 
-            function openModal(modalId) {
-                $(`#${modalId}`).removeClass('hidden').addClass('block');
-                $('body').addClass('overflow-hidden');
-            }
-
-            function closeModal(modalId) {
-                $(`#${modalId}`).removeClass('block').addClass('hidden');
-                $('body').removeClass('overflow-hidden');
+                        // Show success message using SweetAlert2
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Intern deleted successfully',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function(xhr) {
+                        // Show error message using SweetAlert2
+                        let errorMessage = 'Error deleting intern. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMessage = xhr.responseJSON.error;
+                        }
+                        Swal.fire({
+                            title: 'Error!',
+                            text: errorMessage,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
             }
         </script>
     @endpush

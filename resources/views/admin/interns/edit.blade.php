@@ -166,12 +166,7 @@
                         email: true
                     },
                     password: {
-                        minlength: {
-                            param: 8,
-                            depends: function(element) {
-                                return $(element).val().length > 0;
-                            }
-                        }
+                        minlength: 8
                     },
                     password_confirmation: {
                         equalTo: "#password"
@@ -196,39 +191,46 @@
                 errorElement: 'p',
                 errorClass: 'error-message',
                 validClass: 'valid-field',
-                highlight: function(element, errorClass) {
-                    $(element)
-                        .addClass('error-field')
-                        .removeClass('valid-field border-gray-300 bg-gray-50');
-                },
-                unhighlight: function(element, errorClass) {
-                    $(element)
-                        .removeClass('error-field')
-                        .addClass('valid-field border-gray-300');
-                },
-                errorPlacement: function(error, element) {
-                    error.insertAfter(element.closest('.relative'));
-                },
-                success: function(label, element) {
-                    $(element).addClass('valid-field');
-                },
                 submitHandler: function(form) {
-                    form.submit();
+                    const submitBtn = $(form).find('button[type="submit"]');
+                    const originalText = submitBtn.html();
+                    submitBtn.html(
+                        '<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Updating...'
+                    ).prop('disabled', true);
+
+                    $.ajax({
+                        url: form.action,
+                        type: 'POST',
+                        data: $(form).serialize(),
+                        success: function(response) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: 'Intern updated successfully',
+                                icon: 'success',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.href =
+                                    '{{ route('admin.interns.index') }}';
+                            });
+                        },
+                        error: function(xhr) {
+                            submitBtn.html(originalText).prop('disabled', false);
+                            let errorMessage = 'Failed to update intern';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            Swal.fire({
+                                title: 'Error!',
+                                text: errorMessage,
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                    return false;
                 }
             });
-
-            // Add focus handling
-            $('input').focus(function() {
-                $(this).removeClass('bg-gray-50').addClass('bg-white');
-            }).blur(function() {
-                if (!$(this).val()) {
-                    $(this).addClass('bg-gray-50').removeClass('bg-white');
-                }
-            });
-
-            // Initialize field states for edit form
-            if ($('#name').val()) $('#name').addClass('valid-field');
-            if ($('#email').val()) $('#email').addClass('valid-field');
         });
     </script>
 @endpush

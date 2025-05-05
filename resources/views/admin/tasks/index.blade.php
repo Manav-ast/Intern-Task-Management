@@ -91,11 +91,12 @@
                                 <div class="flex items-center space-x-3">
                                     <a href="{{ route('admin.tasks.edit', $task) }}"
                                         class="text-sm font-medium text-gray-600 hover:text-gray-900">Edit</a>
-                                    <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST" class="inline">
+                                    <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST" class="inline"
+                                        id="delete-task-form-{{ $task->id }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit"
-                                            onclick="return confirm('Are you sure you want to delete this task?')"
+                                        <button type="button"
+                                            onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form-{{ $task->id }}').submit())"
                                             class="text-sm font-medium text-red-600 hover:text-red-900">Delete</button>
                                     </form>
                                 </div>
@@ -178,11 +179,11 @@
                                                 <a href="{{ route('admin.tasks.edit', $task) }}"
                                                     class="text-gray-600 hover:text-gray-900">Edit</a>
                                                 <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST"
-                                                    class="inline">
+                                                    class="inline" id="delete-task-form-{{ $task->id }}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit"
-                                                        onclick="return confirm('Are you sure you want to delete this task?')"
+                                                    <button type="button"
+                                                        onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form-{{ $task->id }}').submit())"
                                                         class="text-red-600 hover:text-red-900">Delete</button>
                                                 </form>
                                             </div>
