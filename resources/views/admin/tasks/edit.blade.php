@@ -1,195 +1,193 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="max-w-4xl mx-auto py-6">
-        <h2 class="text-2xl font-semibold mb-4">Edit Task</h2>
-
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <form action="{{ route('admin.tasks.update', $task) }}" method="POST" class="space-y-4">
-                @csrf @method('PUT')
-
-                <div>
-                    <label for="title" class="block font-medium">Title</label>
-                    <input type="text" name="title" id="title" value="{{ old('title', $task->title) }}" required
-                        class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
-                    @error('title')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="description" class="block font-medium">Description</label>
-                    <textarea name="description" id="description" rows="4"
-                        class="w-full border border-gray-300 rounded px-3 py-2 mt-1">{{ old('description', $task->description) }}</textarea>
-                </div>
-
-                <div>
-                    <label for="due_date" class="block font-medium">Due Date</label>
-                    <input type="date" name="due_date" id="due_date"
-                        value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}"
-                        class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
-                    @error('due_date')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="status" class="block font-medium">Status</label>
-                    <select name="status" id="status" class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
-                        @foreach (['pending' => 'Pending', 'in_progress' => 'In Progress', 'completed' => 'Completed'] as $key => $label)
-                            <option value="{{ $key }}" {{ $task->status == $key ? 'selected' : '' }}>
-                                {{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="interns" class="block font-medium">Assigned Interns</label>
-                    <select name="interns[]" id="interns" multiple
-                        class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
-                        @foreach ($interns as $intern)
-                            <option value="{{ $intern->id }}"
-                                {{ in_array($intern->id, $selectedInterns) ? 'selected' : '' }}>
-                                {{ $intern->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('interns')
-                        <span class="text-red-500 text-sm">{{ $message }}</span>
-                    @enderror
-                </div>
-
-                <div class="pt-4">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Update
-                        Task</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Comments Section -->
-        <div class="bg-white rounded-lg shadow-sm p-6">
-            <h3 class="text-lg font-semibold mb-4">Comments</h3>
-
-            <div class="mb-4">
-                <form id="comment-form" class="space-y-4">
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-8">
+                <div class="flex items-center justify-between">
                     <div>
-                        <label for="message" class="block font-medium">Add a Comment</label>
-                        <textarea name="message" id="message" rows="3"
-                            class="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring"></textarea>
+                        <h1 class="text-2xl font-bold text-gray-900">Edit Task</h1>
+                        <p class="mt-2 text-sm text-gray-600">Update task details and assignments.</p>
                     </div>
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                        Post Comment
-                    </button>
-                </form>
+                    <a href="{{ route('admin.tasks.show', $task) }}"
+                        class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Task
+                    </a>
+                </div>
             </div>
 
-            <div id="comments-list" class="space-y-4">
-                @foreach ($task->comments()->with('commentable')->latest()->get() as $comment)
-                    <div class="comment-item bg-gray-50 p-4 rounded-lg" data-comment-id="{{ $comment->id }}">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">{{ $comment->commentable->name }}</p>
-                                <p class="text-sm text-gray-500">{{ $comment->created_at->diffForHumans() }}</p>
-                            </div>
-                            @if ($comment->commentable_id === auth('admin')->id())
-                                <form action="{{ route('admin.tasks.comments.destroy', [$task, $comment]) }}"
-                                    method="POST" class="delete-comment-form"
-                                    onsubmit="return confirm('Are you sure you want to delete this comment?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </form>
-                            @endif
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                <form action="{{ route('admin.tasks.update', $task) }}" method="POST" class="divide-y divide-gray-200"
+                    id="editTaskForm">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="p-6 space-y-6">
+                        <div>
+                            <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
+                            <input type="text" name="title" id="title" value="{{ old('title', $task->title) }}"
+                                required
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 p-4 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Enter task title">
+                            @error('title')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
-                        <p class="mt-2 text-gray-700">{{ $comment->message }}</p>
+
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea name="description" id="description" rows="4"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-4"
+                                placeholder="Enter task description">{{ old('description', $task->description) }}</textarea>
+                            @error('description')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="due_date" class="block text-sm font-medium text-gray-700">Due Date</label>
+                                <input type="date" name="due_date" id="due_date"
+                                    value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}"
+                                    class="mt-1 block w-full border-gray-300 p-4 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                @error('due_date')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                                <select name="status" id="status"
+                                    class="mt-1 block w-full border-gray-300 p-4 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    @foreach (['pending' => 'Pending', 'in_progress' => 'In Progress', 'completed' => 'Completed'] as $key => $label)
+                                        <option value="{{ $key }}"
+                                            {{ old('status', $task->status) == $key ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('status')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="interns" class="block text-sm font-medium text-gray-700">Assigned Interns</label>
+                            <select name="interns[]" id="interns" multiple
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 p-4  focus:border-indigo-500 sm:text-sm">
+                                @foreach ($interns as $intern)
+                                    <option value="{{ $intern->id }}"
+                                        {{ in_array($intern->id, old('interns', $selectedInterns)) ? 'selected' : '' }}>
+                                        {{ $intern->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('interns')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
-                @endforeach
+
+                    <div class="px-6 py-4 bg-gray-50">
+                        <div class="flex justify-end space-x-3">
+                            <a href="{{ route('admin.tasks.show', $task) }}"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Cancel
+                            </a>
+                            <button type="submit"
+                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Update Task
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     @push('scripts')
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/additional-methods.min.js"></script>
         <script>
             $(document).ready(function() {
                 $('#interns').select2({
+                    theme: 'classic',
                     placeholder: 'Select interns',
                     allowClear: true,
                     width: '100%'
                 });
 
-                // Handle comment submission
-                $('#comment-form').on('submit', function(e) {
-                    e.preventDefault();
-                    const message = $('#message').val();
-                    if (!message) return;
-
-                    $.ajax({
-                        url: '{{ route('admin.tasks.comments.store', $task) }}',
-                        type: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                // Initialize form validation
+                $('#editTaskForm').validate({
+                    ignore: [], // Don't ignore hidden inputs (important for select2)
+                    rules: {
+                        title: {
+                            required: true,
+                            minlength: 3,
+                            maxlength: 255
                         },
-                        data: {
-                            message
+                        description: {
+                            required: true,
+                            minlength: 10
                         },
-                        success: function(response) {
-                            // Add new comment to the list
-                            const commentHtml = `
-                                <div class="comment-item bg-gray-50 p-4 rounded-lg" data-comment-id="${response.id}">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900">${response.author}</p>
-                                            <p class="text-sm text-gray-500">${response.created_at}</p>
-                                        </div>
-                                        <form action="/admin/tasks/{{ $task->id }}/comments/${response.id}"
-                                            method="POST"
-                                            class="delete-comment-form"
-                                            onsubmit="return confirm('Are you sure you want to delete this comment?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-800">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </form>
-                                    </div>
-                                    <p class="mt-2 text-gray-700">${response.message}</p>
-                                </div>
-                            `;
-                            $('#comments-list').prepend(commentHtml);
-                            $('#message').val('');
+                        due_date: {
+                            required: true,
+                            date: true
                         },
-                        error: function(xhr) {
-                            alert('Error posting comment. Please try again.');
+                        status: {
+                            required: true
+                        },
+                        'interns[]': {
+                            required: true,
+                            minlength: 1
                         }
-                    });
-                });
-
-                // Handle comment deletion
-                $(document).on('submit', '.delete-comment-form', function(e) {
-                    e.preventDefault();
-                    const form = $(this);
-
-                    $.ajax({
-                        url: form.attr('action'),
-                        type: 'POST',
-                        data: form.serialize(),
-                        success: function(response) {
-                            form.closest('.comment-item').fadeOut(function() {
-                                $(this).remove();
-                            });
+                    },
+                    messages: {
+                        title: {
+                            required: "Please enter a task title",
+                            minlength: "Title must be at least 3 characters long",
+                            maxlength: "Title cannot be longer than 255 characters"
                         },
-                        error: function() {
-                            alert('Error deleting comment. Please try again.');
+                        description: {
+                            required: "Please enter a task description",
+                            minlength: "Description must be at least 10 characters long"
+                        },
+                        due_date: {
+                            required: "Please select a due date",
+                            date: "Please enter a valid date"
+                        },
+                        status: {
+                            required: "Please select a status"
+                        },
+                        'interns[]': {
+                            required: "Please assign at least one intern",
+                            minlength: "Please assign at least one intern"
                         }
-                    });
+                    },
+                    errorElement: 'span',
+                    errorPlacement: function(error, element) {
+                        if (element.attr('id') === 'interns') {
+                            error.insertAfter(element.next('.select2-container'));
+                        } else {
+                            error.insertAfter(element);
+                        }
+                    },
+                    highlight: function(element) {
+                        $(element).addClass('border-red-500').removeClass('border-gray-300');
+                    },
+                    unhighlight: function(element) {
+                        $(element).removeClass('border-red-500').addClass('border-gray-300');
+                    },
+                    errorClass: 'text-red-600 text-sm mt-1',
+                    submitHandler: function(form) {
+                        form.submit();
+                    }
                 });
             });
         </script>
@@ -197,5 +195,36 @@
 
     @push('styles')
         <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <style>
+            .select2-container--classic .select2-selection--multiple {
+                border-color: #D1D5DB !important;
+                border-radius: 0.375rem !important;
+            }
+
+            .select2-container--classic .select2-selection--multiple:focus {
+                border-color: #6366F1 !important;
+                box-shadow: 0 0 0 1px #6366F1 !important;
+            }
+
+
+
+            /* Validation Styles */
+            .error {
+                color: #dc2626;
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
+                display: block;
+            }
+
+            input.error,
+            textarea.error,
+            select.error {
+                border-color: #dc2626 !important;
+            }
+
+            .select2-container--classic .select2-selection--multiple.error {
+                border-color: #dc2626 !important;
+            }
+        </style>
     @endpush
 @endsection

@@ -122,7 +122,7 @@
                         <div class="mb-4">
                             <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Add a comment</label>
                             <textarea id="message" name="message" rows="3"
-                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors duration-200"
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors duration-200 p-4"
                                 placeholder="Write your thoughts..."></textarea>
                         </div>
                         <div class="flex justify-end">
