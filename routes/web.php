@@ -8,8 +8,20 @@ use App\Http\Controllers\Admin\CommentController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Admin\AdminChatController;
+use App\Http\Controllers\Intern\InternChatController;
 
 require __DIR__ . '/user.php';
+
+// Chat Routes
+Route::middleware(['auth:admin'])->prefix('admin')->name('admin.chat.')->group(function () {
+    Route::get('/chat', [AdminChatController::class, 'index'])->name('index');
+    Route::get('/chat/users', [AdminChatController::class, 'getUsers'])->name('users');
+    Route::get('/chat/{id}', [AdminChatController::class, 'show'])->name('show');
+    Route::post('/chat/{id}', [AdminChatController::class, 'store'])->name('store');
+});
+
 // Admin Routes
 Route::prefix('admin')->middleware('guest:admin')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
