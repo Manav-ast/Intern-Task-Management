@@ -17,77 +17,103 @@ class AdminController extends Controller
 
     public function index()
     {
-        $this->authorize('view-admins');
-
-        $admins = Admin::with('roles')->paginate(10);
-        return view('admin.admins.index', compact('admins'));
+        try {
+            $this->authorize('view-admins');
+            $admins = Admin::with('roles')->paginate(10);
+            return view('admin.admins.index', compact('admins'));
+        } catch (\Exception $e) {
+            Log::error('Error loading admins: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading admins. Please try again.');
+        }
     }
 
     public function create()
     {
-        $this->authorize('create-admins');
-
-        $roles = Role::all();
-        return view('admin.admins.create', compact('roles'));
+        try {
+            $this->authorize('create-admins');
+            $roles = Role::all();
+            return view('admin.admins.create', compact('roles'));
+        } catch (\Exception $e) {
+            Log::error('Error loading create admin form: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading create form. Please try again.');
+        }
     }
 
     public function store(Request $request)
     {
-        $this->authorize('create-admins');
+        try {
+            $this->authorize('create-admins');
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:admins'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'roles' => ['required', 'array'],
-            'roles.*' => ['exists:roles,id'],
-        ]);
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'email', 'max:255', 'unique:admins'],
+                'password' => ['required', 'confirmed', Password::defaults()],
+                'roles' => ['required', 'array'],
+                'roles.*' => ['exists:roles,id'],
+            ]);
 
-        $admin = Admin::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
+            $admin = Admin::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
 
-        $admin->roles()->attach($validated['roles']);
+            $admin->roles()->attach($validated['roles']);
 
-        return redirect()->route('admin.admins.index')
-            ->with('success', 'Admin created successfully.');
+            return redirect()->route('admin.admins.index')
+                ->with('success', 'Admin created successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error creating admin: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error creating admin. Please try again.')
+                ->withInput();
+        }
     }
 
     public function edit(Admin $admin)
     {
-        $this->authorize('edit-admins');
-
-        $roles = Role::all();
-        return view('admin.admins.edit', compact('admin', 'roles'));
+        try {
+            $this->authorize('edit-admins');
+            $roles = Role::all();
+            return view('admin.admins.edit', compact('admin', 'roles'));
+        } catch (\Exception $e) {
+            Log::error('Error loading edit admin form: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading edit form. Please try again.');
+        }
     }
 
     public function update(Request $request, Admin $admin)
     {
-        $this->authorize('edit-admins');
+        try {
+            $this->authorize('edit-admins');
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email,' . $admin->id],
-            'password' => ['nullable', 'confirmed', Password::defaults()],
-            'roles' => ['required', 'array'],
-            'roles.*' => ['exists:roles,id'],
-        ]);
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email,' . $admin->id],
+                'password' => ['nullable', 'confirmed', Password::defaults()],
+                'roles' => ['required', 'array'],
+                'roles.*' => ['exists:roles,id'],
+            ]);
 
-        $admin->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-        ]);
+            $admin->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+            ]);
 
-        if ($validated['password']) {
-            $admin->update(['password' => Hash::make($validated['password'])]);
+            if ($validated['password']) {
+                $admin->update(['password' => Hash::make($validated['password'])]);
+            }
+
+            $admin->roles()->sync($validated['roles']);
+
+            return redirect()->route('admin.admins.index')
+                ->with('success', 'Admin updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error updating admin: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error updating admin. Please try again.')
+                ->withInput();
         }
-
-        $admin->roles()->sync($validated['roles']);
-
-        return redirect()->route('admin.admins.index')
-            ->with('success', 'Admin updated successfully.');
     }
 
     public function destroy(Admin $admin)
@@ -124,7 +150,7 @@ class AdminController extends Controller
             return redirect()->route('admin.admins.index')
                 ->with('success', 'Admin deleted successfully.');
         } catch (\Exception $e) {
-            \Log::error('Error deleting admin: ' . $e->getMessage());
+            Log::error('Error deleting admin: ' . $e->getMessage());
 
             if (request()->wantsJson()) {
                 return response()->json([

@@ -7,43 +7,71 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\InternRegisterRequest;
 use App\Models\Intern;
+use Illuminate\Support\Facades\Log;
 
 class InternAuthController extends Controller
 {
     public function showLoginForm()
     {
-        return view('intern.auth.login');
+        try {
+            return view('intern.auth.login');
+        } catch (\Exception $e) {
+            Log::error('Error showing login form: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading login page. Please try again.');
+        }
     }
 
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
-        if (Auth::guard('intern')->attempt($credentials)) {
-            return redirect()->route('intern.dashboard');
+        try {
+            $credentials = $request->only('email', 'password');
+            if (Auth::guard('intern')->attempt($credentials)) {
+                return redirect()->route('intern.dashboard');
+            }
+            return back()->withErrors(['email' => 'Invalid credentials']);
+        } catch (\Exception $e) {
+            Log::error('Error during login: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'An error occurred during login. Please try again.']);
         }
-        return back()->withErrors(['email' => 'Invalid credentials']);
     }
 
     public function showRegisterForm()
     {
-        return view('intern.auth.register');
+        try {
+            return view('intern.auth.register');
+        } catch (\Exception $e) {
+            Log::error('Error showing register form: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading registration page. Please try again.');
+        }
     }
 
     public function register(InternRegisterRequest $request)
     {
-        $intern = Intern::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
-        ]);
+        try {
+            $validatedData = $request->validated();
 
-        auth('intern')->login($intern);
-        return redirect()->route('intern.dashboard');
+            $intern = Intern::create([
+                'name' => $validatedData['name'],
+                'email' => $validatedData['email'],
+                'password' => bcrypt($validatedData['password']),
+            ]);
+
+            auth('intern')->login($intern);
+            return redirect()->route('intern.dashboard');
+        } catch (\Exception $e) {
+            Log::error('Error during registration: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'An error occurred during registration. Please try again.'])->withInput();
+        }
     }
 
     public function logout()
     {
-        Auth::guard('intern')->logout();
-        return redirect()->route('intern.login');
+        try {
+            Auth::guard('intern')->logout();
+            return redirect()->route('intern.login');
+        } catch (\Exception $e) {
+            Log::error('Error during logout: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error during logout. Please try again.');
+        }
     }
 }

@@ -17,52 +17,82 @@ class InternController extends Controller
 
     public function index()
     {
-        $interns = Intern::latest()->paginate(10);
-        return view('admin.interns.index', compact('interns'));
+        try {
+            $interns = Intern::latest()->paginate(10);
+            return view('admin.interns.index', compact('interns'));
+        } catch (\Exception $e) {
+            Log::error('Error loading interns: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading interns. Please try again.');
+        }
     }
 
     public function create()
     {
-        $this->authorize('create-interns');
-        return view('admin.interns.create');
+        try {
+            $this->authorize('create-interns');
+            return view('admin.interns.create');
+        } catch (\Exception $e) {
+            Log::error('Error loading create intern form: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading create form. Please try again.');
+        }
     }
 
     public function store(StoreInternRequest $request)
     {
-        $this->authorize('create-interns');
-        $validatedData = $request->validated();
-        $validatedData['password'] = Hash::make($validatedData['password']);
+        try {
+            $this->authorize('create-interns');
+            $validatedData = $request->validated();
+            $validatedData['password'] = Hash::make($validatedData['password']);
 
-        Intern::create($validatedData);
-        return redirect()->route('admin.interns.index')->with('success', 'Intern created successfully.');
+            Intern::create($validatedData);
+            return redirect()->route('admin.interns.index')->with('success', 'Intern created successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error creating intern: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error creating intern. Please try again.')
+                ->withInput();
+        }
     }
 
     public function edit(Intern $intern)
     {
-        $this->authorize('edit-interns');
-        return view('admin.interns.edit', compact('intern'));
+        try {
+            $this->authorize('edit-interns');
+            return view('admin.interns.edit', compact('intern'));
+        } catch (\Exception $e) {
+            Log::error('Error loading edit intern form: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error loading edit form. Please try again.');
+        }
     }
 
     public function update(StoreInternRequest $request, Intern $intern)
     {
-        $this->authorize('edit-interns');
-        $validatedData = $request->validated();
+        try {
+            $this->authorize('edit-interns');
+            $validatedData = $request->validated();
 
-        // Only update password if it's provided
-        if (empty($validatedData['password'])) {
-            unset($validatedData['password']);
-        } else {
-            $validatedData['password'] = Hash::make($validatedData['password']);
+            // Only update password if it's provided
+            if (empty($validatedData['password'])) {
+                unset($validatedData['password']);
+            } else {
+                $validatedData['password'] = Hash::make($validatedData['password']);
+            }
+
+            $intern->update($validatedData);
+            return redirect()->route('admin.interns.index')->with('success', 'Intern updated.');
+        } catch (\Exception $e) {
+            Log::error('Error updating intern: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error updating intern. Please try again.')
+                ->withInput();
         }
-
-        $intern->update($validatedData);
-        return redirect()->route('admin.interns.index')->with('success', 'Intern updated.');
     }
 
     public function destroy(Intern $intern)
     {
-        $this->authorize('delete-interns');
         try {
+            $this->authorize('delete-interns');
+
             // Check if intern has any associated tasks
             if ($intern->tasks()->count() > 0) {
                 return response()->json([
