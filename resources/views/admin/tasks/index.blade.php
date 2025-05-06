@@ -91,14 +91,9 @@
                                 <div class="flex items-center space-x-3">
                                     <a href="{{ route('admin.tasks.edit', $task) }}"
                                         class="text-sm font-medium text-gray-600 hover:text-gray-900">Edit</a>
-                                    <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST" class="inline"
-                                        id="delete-task-form-{{ $task->id }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="button"
-                                            onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form-{{ $task->id }}').submit())"
-                                            class="text-sm font-medium text-red-600 hover:text-red-900">Delete</button>
-                                    </form>
+                                    <button type="button"
+                                        onclick="deleteTask({{ $task->id }}, '{{ $task->title }}')"
+                                        class="text-sm font-medium text-red-600 hover:text-red-900">Delete</button>
                                 </div>
                             </div>
                         </div>
@@ -133,9 +128,11 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($tasks as $task)
-                                    <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                    <tr id="task-row-{{ $task->id }}"
+                                        class="hover:bg-gray-50 transition-colors duration-200">
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{{ $task->title }}</div>
+                                            <div class="text-sm font-medium text-gray-900 task-title">{{ $task->title }}
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span
@@ -178,14 +175,9 @@
                                                     class="text-indigo-600 hover:text-indigo-900">View</a>
                                                 <a href="{{ route('admin.tasks.edit', $task) }}"
                                                     class="text-gray-600 hover:text-gray-900">Edit</a>
-                                                <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST"
-                                                    class="inline" id="delete-task-form-{{ $task->id }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="button"
-                                                        onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form-{{ $task->id }}').submit())"
-                                                        class="text-red-600 hover:text-red-900">Delete</button>
-                                                </form>
+                                                <button type="button"
+                                                    onclick="deleteTask({{ $task->id }}, '{{ $task->title }}')"
+                                                    class="text-red-600 hover:text-red-900">Delete</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -201,4 +193,89 @@
             @endif
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            $(document).ready(function() {
+                // Show success message if exists
+                @if (session('success'))
+                    Swal.fire({
+                        title: 'Success!',
+                        text: '{{ session('success') }}',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                @endif
+
+                // Show error message if exists
+                @if (session('error'))
+                    Swal.fire({
+                        title: 'Error!',
+                        text: '{{ session('error') }}',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                @endif
+            });
+
+            function deleteTask(taskId, taskTitle) {
+                Swal.fire({
+                    title: 'Delete Task',
+                    text: `Are you sure you want to delete "${taskTitle}"? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/admin/tasks/${taskId}`,
+                            type: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            success: function(response) {
+                                // Remove the row with animation
+                                $(`#task-row-${taskId}`).fadeOut('slow', function() {
+                                    $(this).remove();
+                                });
+
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: response.message || 'Task deleted successfully',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Check if there are no more tasks and reload the page
+                                    if ($('.task-title').length === 0) {
+                                        window.location.reload();
+                                    }
+                                });
+                            },
+                            error: function(xhr) {
+                                // Show error message
+                                let errorMessage = 'Error deleting task. Please try again.';
+                                if (xhr.responseJSON && xhr.responseJSON.error) {
+                                    errorMessage = xhr.responseJSON.error;
+                                }
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: errorMessage,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        </script>
+    @endpush
 @endsection

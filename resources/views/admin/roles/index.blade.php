@@ -23,7 +23,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     @foreach ($roles as $role)
-                        <tr>
+                        <tr id="role-row-{{ $role->id }}">
                             <td class="px-6 py-4 font-semibold text-gray-900">{{ $role->name }}</td>
                             <td class="px-6 py-4">
                                 <span
@@ -45,15 +45,10 @@
                                         class="text-gray-600 font-medium hover:underline">Edit</a>
                                 @endcan
                                 @can('delete-roles')
-                                    <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline"
-                                        id="delete-role-form-{{ $role->id }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="button" class="text-red-600 font-medium hover:underline"
-                                            onclick="confirmDelete('Delete Role', 'Are you sure you want to delete this role? This action cannot be undone.', () => document.getElementById('delete-role-form-{{ $role->id }}').submit())">
-                                            Delete
-                                        </button>
-                                    </form>
+                                    <button type="button" class="text-red-600 font-medium hover:underline"
+                                        onclick="deleteRole({{ $role->id }}, '{{ $role->name }}')">
+                                        Delete
+                                    </button>
                                 @endcan
                             </td>
                         </tr>
@@ -62,4 +57,82 @@
             </table>
         </div>
     </div>
+
+    @push('scripts')
+        <script>
+            $(document).ready(function() {
+                // Show success message if exists
+                @if (session('success'))
+                    Swal.fire({
+                        title: 'Success!',
+                        text: '{{ session('success') }}',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                @endif
+
+                // Show error message if exists
+                @if (session('error'))
+                    Swal.fire({
+                        title: 'Error!',
+                        text: '{{ session('error') }}',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                @endif
+            });
+
+            function deleteRole(roleId, roleName) {
+                Swal.fire({
+                    title: 'Delete Role',
+                    text: `Are you sure you want to delete "${roleName}"? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/admin/roles/${roleId}`,
+                            type: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
+                            success: function(response) {
+                                // Remove the row with animation
+                                $(`#role-row-${roleId}`).fadeOut('slow', function() {
+                                    $(this).remove();
+                                });
+
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: 'Role deleted successfully',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            },
+                            error: function(xhr) {
+                                // Show error message
+                                let errorMessage = 'Error deleting role. Please try again.';
+                                if (xhr.responseJSON && xhr.responseJSON.error) {
+                                    errorMessage = xhr.responseJSON.error;
+                                }
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: errorMessage,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        </script>
+    @endpush
 @endsection

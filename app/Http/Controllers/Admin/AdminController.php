@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
@@ -91,15 +92,48 @@ class AdminController extends Controller
 
     public function destroy(Admin $admin)
     {
-        $this->authorize('delete-admins');
+        try {
+            $this->authorize('delete-admins');
 
-        if ($admin->isSuperAdmin()) {
-            return back()->with('error', 'Cannot delete super admin.');
+            if ($admin->isSuperAdmin()) {
+                return response()->json([
+                    'error' => 'Cannot delete super admin.'
+                ], 422);
+            }
+
+            // Check for related data
+            if ($admin->tasks()->count() > 0) {
+                return response()->json([
+                    'error' => 'Cannot delete admin with assigned tasks. Please reassign or delete the tasks first.'
+                ], 422);
+            }
+
+            // Delete related data
+            $admin->comments()->delete();
+            $admin->sentMessages()->delete();
+            $admin->receivedMessages()->delete();
+            $admin->roles()->detach();
+
+            // Delete admin
+            $admin->delete();
+
+            if (request()->wantsJson()) {
+                return response()->json(['message' => 'Admin deleted successfully']);
+            }
+
+            return redirect()->route('admin.admins.index')
+                ->with('success', 'Admin deleted successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting admin: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'error' => 'Failed to delete admin. Please try again.'
+                ], 500);
+            }
+
+            return redirect()->route('admin.admins.index')
+                ->with('error', 'Failed to delete admin.');
         }
-
-        $admin->delete();
-
-        return redirect()->route('admin.admins.index')
-            ->with('success', 'Admin deleted successfully.');
     }
 }

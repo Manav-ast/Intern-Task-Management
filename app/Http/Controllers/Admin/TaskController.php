@@ -75,12 +75,32 @@ class TaskController extends Controller
 
     public function destroy(Task $task)
     {
-
         try {
             $this->authorize('delete-tasks');
+
+            // Check if task has any comments
+            if ($task->comments()->count() > 0) {
+                // Delete associated comments first
+                $task->comments()->delete();
+            }
+
+            // Delete task
             $task->delete();
+
+            if (request()->wantsJson()) {
+                return response()->json(['message' => 'Task deleted successfully']);
+            }
+
             return redirect()->route('admin.tasks.index')->with('success', 'Task deleted successfully');
         } catch (\Exception $e) {
+            \Log::error('Error deleting task: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'error' => 'Failed to delete task. Please try again.'
+                ], 500);
+            }
+
             return redirect()->route('admin.tasks.index')->with('error', 'Failed to delete task');
         }
     }
