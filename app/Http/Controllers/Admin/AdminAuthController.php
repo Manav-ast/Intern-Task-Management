@@ -48,10 +48,12 @@ class AdminAuthController extends Controller
     public function register(AdminRegisterRequest $request)
     {
         try {
+            $validatedData = $request->validated();
+
             $admin = Admin::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => bcrypt($request->password),
+                'name' => $validatedData['name'],
+                'email' => $validatedData['email'],
+                'password' => bcrypt($validatedData['password']),
             ]);
 
             auth('admin')->login($admin);

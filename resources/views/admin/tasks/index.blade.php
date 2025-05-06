@@ -5,13 +5,15 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
                 <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Tasks</h2>
-                <a href="{{ route('admin.tasks.create') }}"
-                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Create New Task
-                </a>
+                @can('create-tasks')
+                    <a href="{{ route('admin.tasks.create') }}"
+                        class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Create New Task
+                    </a>
+                @endcan
             </div>
 
             @if ($tasks->isEmpty())
@@ -25,13 +27,15 @@
                         </div>
                         <p class="text-xl font-medium text-gray-900 mb-2">No tasks yet</p>
                         <p class="text-gray-500 mb-6">Get started by creating your first task.</p>
-                        <a href="{{ route('admin.tasks.create') }}"
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Create Task
-                        </a>
+                        @can('create-tasks')
+                            <a href="{{ route('admin.tasks.create') }}"
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Create Task
+                            </a>
+                        @endcan
                     </div>
                 </div>
             @else
@@ -86,14 +90,20 @@
                                 </div>
                             </div>
                             <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-                                <a href="{{ route('admin.tasks.show', $task) }}"
-                                    class="text-sm font-medium text-indigo-600 hover:text-indigo-900">View Details</a>
+                                @can('view-tasks')
+                                    <a href="{{ route('admin.tasks.show', $task) }}"
+                                        class="text-sm font-medium text-indigo-600 hover:text-indigo-900">View Details</a>
+                                @endcan
                                 <div class="flex items-center space-x-3">
-                                    <a href="{{ route('admin.tasks.edit', $task) }}"
-                                        class="text-sm font-medium text-gray-600 hover:text-gray-900">Edit</a>
-                                    <button type="button"
-                                        onclick="deleteTask({{ $task->id }}, '{{ $task->title }}')"
-                                        class="text-sm font-medium text-red-600 hover:text-red-900">Delete</button>
+                                    @can('edit-tasks')
+                                        <a href="{{ route('admin.tasks.edit', $task) }}"
+                                            class="text-sm font-medium text-gray-600 hover:text-gray-900">Edit</a>
+                                    @endcan
+                                    @can('delete-tasks')
+                                        <button type="button"
+                                            onclick="deleteTask({{ $task->id }}, '{{ $task->title }}')"
+                                            class="text-sm font-medium text-red-600 hover:text-red-900">Delete</button>
+                                    @endcan
                                 </div>
                             </div>
                         </div>
@@ -171,13 +181,19 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex justify-end space-x-3">
-                                                <a href="{{ route('admin.tasks.show', $task) }}"
-                                                    class="text-indigo-600 hover:text-indigo-900">View</a>
-                                                <a href="{{ route('admin.tasks.edit', $task) }}"
-                                                    class="text-gray-600 hover:text-gray-900">Edit</a>
-                                                <button type="button"
-                                                    onclick="deleteTask({{ $task->id }}, '{{ $task->title }}')"
-                                                    class="text-red-600 hover:text-red-900">Delete</button>
+                                                @can('view-tasks')
+                                                    <a href="{{ route('admin.tasks.show', $task) }}"
+                                                        class="text-indigo-600 hover:text-indigo-900">View</a>
+                                                @endcan
+                                                @can('edit-tasks')
+                                                    <a href="{{ route('admin.tasks.edit', $task) }}"
+                                                        class="text-gray-600 hover:text-gray-900">Edit</a>
+                                                @endcan
+                                                @can('delete-tasks')
+                                                    <button type="button"
+                                                        onclick="deleteTask({{ $task->id }}, '{{ $task->title }}')"
+                                                        class="text-red-600 hover:text-red-900">Delete</button>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>
