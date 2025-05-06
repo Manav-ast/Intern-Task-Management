@@ -9,6 +9,7 @@ use App\Events\NewMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class AdminChatController extends Controller
 {
@@ -88,18 +89,29 @@ class AdminChatController extends Controller
 
             broadcast(new NewMessage($message))->toOthers();
 
-            if ($request->ajax()) {
+            if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'status' => 'success',
-                    'message' => $message->load('sender'),
+                    'message' => $message->load(['sender', 'receiver']),
                 ]);
             }
 
             return redirect()->back()->with('success', 'Message sent successfully.');
+        } catch (ValidationException $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $e->errors()['message'][0] ?? 'Invalid message',
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Error sending message: ' . $e->getMessage());
-            if ($request->ajax()) {
-                return response()->json(['error' => 'Error sending message. Please try again.'], 500);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to send message. Please try again.',
+                ], 500);
             }
             return redirect()->back()->with('error', 'Error sending message. Please try again.')->withInput();
         }

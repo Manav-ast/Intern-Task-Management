@@ -2,6 +2,7 @@
 
 @section('content')
     <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <div class="py-3 sm:py-6">
         <div class="chat-container">
@@ -107,6 +108,7 @@
                 const messagesContainer = document.getElementById('chat-messages');
                 const messageForm = document.getElementById('message-form');
                 const messageInput = document.getElementById('message-input');
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
                 // Scroll to bottom on load
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -118,29 +120,44 @@
                     if (!message) return;
 
                     try {
-                        const formData = new FormData(this);
                         const response = await fetch(this.action, {
                             method: 'POST',
                             headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                    .content,
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
                             },
                             body: JSON.stringify({
-                                message: message
+                                message: message,
+                                _token: csrfToken
                             })
                         });
 
-                        if (!response.ok) throw new Error('Failed to send message');
-
                         const data = await response.json();
-                        appendMessage(data.message, true);
-                        messageInput.value = '';
-                        messageInput.focus();
+
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Failed to send message');
+                        }
+
+                        if (data.status === 'success' && data.message) {
+                            appendMessage(data.message, true);
+                            messageInput.value = '';
+                            messageInput.focus();
+                        } else {
+                            throw new Error('Invalid response format');
+                        }
                     } catch (error) {
                         console.error('Error:', error);
-                        alert('Failed to send message. Please try again.');
+                        // Show a more user-friendly error message
+                        const errorMessage = document.createElement('div');
+                        errorMessage.className = 'error-message animate-fade-in';
+                        errorMessage.textContent = 'Message could not be sent. Please try again.';
+                        messageForm.insertAdjacentElement('beforebegin', errorMessage);
+
+                        // Remove error message after 3 seconds
+                        setTimeout(() => {
+                            errorMessage.remove();
+                        }, 3000);
                     }
                 });
 
@@ -238,6 +255,16 @@
         .message-content p {
             -webkit-user-select: text;
             user-select: text;
+        }
+
+        .error-message {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            margin: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            text-align: center;
         }
     </style>
 @endsection
