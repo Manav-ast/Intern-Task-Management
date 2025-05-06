@@ -20,6 +20,7 @@ class Chat {
 
         this.initializeEventListeners();
         this.initializeEcho();
+        this.scrollToBottom(); // Scroll to bottom when chat is initialized
     }
 
     initializeEventListeners() {
@@ -81,7 +82,10 @@ class Chat {
     }
 
     scrollToBottom() {
-        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        // Use requestAnimationFrame to ensure DOM updates are complete before scrolling
+        requestAnimationFrame(() => {
+            this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        });
     }
 }
 
