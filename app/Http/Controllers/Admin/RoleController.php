@@ -14,42 +14,54 @@ class RoleController extends Controller
 
     public function index()
     {
-        $this->authorize('view-roles');
+        try {
+            $this->authorize('view-roles');
 
-        $roles = Role::with('permissions')->paginate(10);
-        return view('admin.roles.index', compact('roles'));
+            $roles = Role::with('permissions')->paginate(10);
+            return view('admin.roles.index', compact('roles'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error loading roles: ' . $e->getMessage());
+        }
     }
 
     public function create()
     {
-        $this->authorize('create-roles');
+        try {
+            $this->authorize('create-roles');
 
-        $permissions = Permission::all();
-        return view('admin.roles.create', compact('permissions'));
+            $permissions = Permission::all();
+            return view('admin.roles.create', compact('permissions'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error accessing create role page: ' . $e->getMessage());
+        }
     }
 
     public function store(Request $request)
     {
-        $this->authorize('create-roles');
+        try {
+            $this->authorize('create-roles');
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:roles'],
-            'slug' => ['required', 'string', 'max:255', 'unique:roles'],
-            'description' => ['nullable', 'string'],
-            'permissions' => ['required', 'array'],
-            'permissions.*' => ['exists:permissions,id'],
-        ]);
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255', 'unique:roles'],
+                'slug' => ['required', 'string', 'max:255', 'unique:roles'],
+                'description' => ['nullable', 'string'],
+                'permissions' => ['required', 'array'],
+                'permissions.*' => ['exists:permissions,id'],
+            ]);
 
-        $role = Role::create([
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-            'description' => $validated['description'],
-        ]);
+            $role = Role::create([
+                'name' => $validated['name'],
+                'slug' => $validated['slug'],
+                'description' => $validated['description'],
+            ]);
 
-        $role->permissions()->attach($validated['permissions']);
+            $role->permissions()->attach($validated['permissions']);
 
-        return redirect()->route('admin.roles.index')
-            ->with('success', 'Role created successfully.');
+            return redirect()->route('admin.roles.index')
+                ->with('success', 'Role created successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error creating role: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function edit(Role $role)

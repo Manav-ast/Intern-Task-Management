@@ -16,46 +16,66 @@ class TaskController extends Controller
 
     public function index()
     {
-        $tasks = Task::with('interns', 'admin')->latest()->paginate(10);
-        return view('admin.tasks.index', compact('tasks'));
+        try {
+            $tasks = Task::with('interns', 'admin')->latest()->paginate(10);
+            return view('admin.tasks.index', compact('tasks'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error loading tasks: ' . $e->getMessage());
+        }
     }
 
     public function create()
     {
-        $this->authorize('create-tasks');
-        $interns = Intern::all();
-        return view('admin.tasks.create', compact('interns'));
+        try {
+            $this->authorize('create-tasks');
+            $interns = Intern::all();
+            return view('admin.tasks.create', compact('interns'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error accessing create task page: ' . $e->getMessage());
+        }
     }
 
     public function show(Task $task)
     {
-        $this->authorize('view-tasks');
-        $task->load(['interns', 'comments.commentable']);
-        return view('admin.tasks.show', compact('task'));
+        try {
+            $this->authorize('view-tasks');
+            $task->load(['interns', 'comments.commentable']);
+            return view('admin.tasks.show', compact('task'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error viewing task: ' . $e->getMessage());
+        }
     }
 
     public function store(StoreTaskRequest $request)
     {
-        $this->authorize('create-tasks');
-        $task = Task::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'status' => $request->status,
-            'due_date' => $request->due_date,
-            'created_by' => auth('admin')->id(),
-        ]);
+        try {
+            $this->authorize('create-tasks');
+            $task = Task::create([
+                'title' => $request->title,
+                'description' => $request->description,
+                'status' => $request->status,
+                'due_date' => $request->due_date,
+                'created_by' => auth('admin')->id(),
+            ]);
 
-        $task->interns()->attach($request->interns);
+            $task->interns()->attach($request->interns);
 
-        return redirect()->route('admin.tasks.index')->with('success', 'Task created successfully.');
+            return redirect()->route('admin.tasks.index')->with('success', 'Task created successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error creating task: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function edit(Task $task)
     {
-        $this->authorize('edit-tasks');
-        $interns = Intern::all();
-        $selectedInterns = $task->interns->pluck('id')->toArray();
-        return view('admin.tasks.edit', compact('task', 'interns', 'selectedInterns'));
+        try {
+            $this->authorize('edit-tasks');
+            $interns = Intern::all();
+            $selectedInterns = $task->interns->pluck('id')->toArray();
+            return view('admin.tasks.edit', compact('task', 'interns', 'selectedInterns'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error accessing edit task page: ' . $e->getMessage());
+        }
     }
 
     public function update(StoreTaskRequest $request, Task $task)

@@ -11,22 +11,30 @@ class TaskController extends Controller
 {
     public function index()
     {
-        $tasks = auth('intern')->user()->tasks()
-            ->with(['admin', 'comments'])
-            ->latest()
-            ->paginate(10);
+        try {
+            $tasks = auth('intern')->user()->tasks()
+                ->with(['admin', 'comments'])
+                ->latest()
+                ->paginate(10);
 
-        return view('intern.tasks.index', compact('tasks'));
+            return view('intern.tasks.index', compact('tasks'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error loading tasks: ' . $e->getMessage());
+        }
     }
 
     public function show(Task $task)
     {
-        // Check if the intern is assigned to this task
-        if (!$task->interns->contains(auth('intern')->id())) {
-            abort(403, 'You are not authorized to view this task.');
-        }
+        try {
+            // Check if the intern is assigned to this task
+            if (!$task->interns->contains(auth('intern')->id())) {
+                abort(403, 'You are not authorized to view this task.');
+            }
 
-        return view('intern.tasks.show', compact('task'));
+            return view('intern.tasks.show', compact('task'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error viewing task: ' . $e->getMessage());
+        }
     }
 
     public function addComment(Request $request, Task $task)
