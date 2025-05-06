@@ -1,21 +1,18 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Create Role') }}
-        </h2>
-    </x-slot>
+@extends('layouts.admin')
 
+@section('content')
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <form action="{{ route('admin.roles.store') }}" method="POST">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ __('Create Role') }}</h2>
+                    <form id="createRoleForm" action="{{ route('admin.roles.store') }}" method="POST">
                         @csrf
 
                         <div class="mb-4">
                             <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
-                            <input type="text" name="name" id="name" value="{{ old('name') }}" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="text" name="name" id="name" value="{{ old('name') }}"
+                                class="p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             @error('name')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -23,8 +20,8 @@
 
                         <div class="mb-4">
                             <label for="slug" class="block text-sm font-medium text-gray-700">Slug</label>
-                            <input type="text" name="slug" id="slug" value="{{ old('slug') }}" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="text" name="slug" id="slug" value="{{ old('slug') }}"
+                                class="p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             @error('slug')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -33,7 +30,7 @@
                         <div class="mb-4">
                             <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
                             <textarea name="description" id="description" rows="3"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea>
+                                class=" p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description') }}</textarea>
                             @error('description')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -75,4 +72,93 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+
+    @push('scripts')
+        <script>
+            $(document).ready(function() {
+                // Initialize form validation
+                $("#createRoleForm").validate({
+                    rules: {
+                        name: {
+                            required: true,
+                            minlength: 3,
+                            maxlength: 255
+                        },
+                        slug: {
+                            required: true,
+                            minlength: 3,
+                            maxlength: 255,
+                            pattern: /^[a-z0-9-]+$/
+                        },
+                        description: {
+                            maxlength: 1000
+                        },
+                        'permissions[]': {
+                            required: true,
+                            minlength: 1
+                        }
+                    },
+                    messages: {
+                        name: {
+                            required: "Please enter a role name",
+                            minlength: "Role name must be at least 3 characters long",
+                            maxlength: "Role name cannot be longer than 255 characters"
+                        },
+                        slug: {
+                            required: "Please enter a slug",
+                            minlength: "Slug must be at least 3 characters long",
+                            maxlength: "Slug cannot be longer than 255 characters",
+                            pattern: "Slug can only contain lowercase letters, numbers, and hyphens"
+                        },
+                        description: {
+                            maxlength: "Description cannot be longer than 1000 characters"
+                        },
+                        'permissions[]': {
+                            required: "Please select at least one permission",
+                            minlength: "Please select at least one permission"
+                        }
+                    },
+                    errorElement: 'span',
+                    errorClass: 'error',
+                    validClass: 'valid',
+                    errorPlacement: function(error, element) {
+                        if (element.attr("type") === "checkbox") {
+                            error.insertAfter(element.closest('.grid'));
+                        } else {
+                            error.insertAfter(element);
+                        }
+                    },
+                    highlight: function(element, errorClass, validClass) {
+                        $(element).addClass('error').removeClass('valid');
+                    },
+                    unhighlight: function(element, errorClass, validClass) {
+                        $(element).removeClass('error').addClass('valid');
+                    },
+                    submitHandler: function(form) {
+                        // Disable submit button to prevent double submission
+                        $(form).find('button[type="submit"]').prop('disabled', true);
+                        form.submit();
+                    }
+                });
+
+                // Auto-generate slug from name
+                $('#name').on('input', function() {
+                    if (!$('#slug').data('manually-entered')) {
+                        const slug = $(this)
+                            .val()
+                            .toLowerCase()
+                            .replace(/[^a-z0-9-]/g, '-')
+                            .replace(/-+/g, '-')
+                            .replace(/^-|-$/g, '');
+                        $('#slug').val(slug);
+                    }
+                });
+
+                // Track if slug was manually entered
+                $('#slug').on('input', function() {
+                    $(this).data('manually-entered', true);
+                });
+            });
+        </script>
+    @endpush
+@endsection

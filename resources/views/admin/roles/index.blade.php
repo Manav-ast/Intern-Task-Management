@@ -11,7 +11,7 @@
                 </a>
             @endcan
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -99,7 +99,9 @@
                             url: `/admin/roles/${roleId}`,
                             type: 'DELETE',
                             headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
                             },
                             success: function(response) {
                                 // Remove the row with animation
@@ -110,10 +112,15 @@
                                 // Show success message
                                 Swal.fire({
                                     title: 'Success!',
-                                    text: 'Role deleted successfully',
+                                    text: response.message || 'Role deleted successfully',
                                     icon: 'success',
                                     timer: 2000,
                                     showConfirmButton: false
+                                }).then(() => {
+                                    // Check if there are no more roles and reload the page
+                                    if ($('tr[id^="role-row-"]').length === 0) {
+                                        window.location.reload();
+                                    }
                                 });
                             },
                             error: function(xhr) {

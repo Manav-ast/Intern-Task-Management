@@ -46,6 +46,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'create-tasks',
             'edit-tasks',
             'delete-tasks',
+
+            // Comment Management
+            'view-comments',
+            'create-comments',
+            'edit-comments',
+            'delete-comments',
         ];
 
         foreach ($permissions as $permission) {
@@ -78,6 +84,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-tasks',
             'create-tasks',
             'edit-tasks',
+            'view-comments',
+            'create-comments',
+            'delete-comments',
         ]);
 
         // Create a super admin user

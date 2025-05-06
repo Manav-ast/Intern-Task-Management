@@ -126,15 +126,37 @@ class RoleController extends Controller
             $this->authorize('delete-roles');
 
             if ($role->slug === 'super-admin') {
-                return back()->with('error', 'Cannot delete super admin role.');
+                return response()->json([
+                    'error' => 'Cannot delete super admin role.'
+                ], 422);
             }
 
+            // Check if role has any admins assigned
+            if ($role->users()->count() > 0) {
+                return response()->json([
+                    'error' => 'Cannot delete role that has admins assigned. Please remove all admins from this role first.'
+                ], 422);
+            }
+
+            // Delete role and its relationships
+            $role->permissions()->detach();
             $role->delete();
+
+            if (request()->wantsJson()) {
+                return response()->json(['message' => 'Role deleted successfully']);
+            }
 
             return redirect()->route('admin.roles.index')
                 ->with('success', 'Role deleted successfully.');
         } catch (\Exception $e) {
             Log::error('Error deleting role: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'error' => 'Error deleting role. Please try again.'
+                ], 500);
+            }
+
             return redirect()->back()->with('error', 'Error deleting role. Please try again.');
         }
     }

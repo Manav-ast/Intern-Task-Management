@@ -5,11 +5,22 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @if (auth()->check())
+        <meta name="user-id" content="{{ auth()->id() }}">
+        <meta name="user-type" content="{{ get_class(auth()->user()) }}">
+        <meta name="user-name" content="{{ auth()->user()->name }}">
+        @if (isset($otherUser))
+            <meta name="other-user-id" content="{{ $otherUser->id }}">
+        @endif
+    @endif
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/additional-methods.min.js"></script>
     <!-- Alpine.js -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- SweetAlert2 -->
@@ -28,6 +39,26 @@
 
         .modal-content {
             transition: transform 0.3s ease-in-out;
+        }
+
+        /* jQuery Validate Styles */
+        .error {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        input.error,
+        textarea.error,
+        select.error {
+            border-color: #dc2626 !important;
+        }
+
+        input.valid,
+        textarea.valid,
+        select.valid {
+            border-color: #059669 !important;
         }
     </style>
 

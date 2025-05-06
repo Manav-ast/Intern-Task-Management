@@ -117,7 +117,7 @@
                     <div id="success-alert"
                         class="hidden mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg"></div>
 
-                    <form id="comment-form" class="mb-8 bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-100">
+                    <form id="comment-form" class="mb-8">
                         @csrf
                         <div class="mb-4">
                             <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Add a comment</label>
@@ -163,7 +163,7 @@
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="button"
-                                                        onclick="confirmDelete('Delete Comment', 'Are you sure you want to delete this comment? This action cannot be undone.', () => document.getElementById('delete-comment-form-{{ $comment->id }}').submit())"
+                                                        onclick="handleCommentDelete({{ $comment->id }}, '{{ route('admin.tasks.comments.destroy', [$task, $comment]) }}')"
                                                         class="text-red-600 hover:text-red-900">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                             viewBox="0 0 24 24">
@@ -188,6 +188,66 @@
 
     @push('scripts')
         <script>
+            async function handleCommentDelete(commentId, deleteUrl) {
+                try {
+                    const result = await Swal.fire({
+                        title: 'Delete Comment',
+                        text: 'Are you sure you want to delete this comment? This action cannot be undone.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc2626',
+                        cancelButtonColor: '#6b7280',
+                        confirmButtonText: 'Yes, delete it!',
+                        cancelButtonText: 'Cancel'
+                    });
+
+                    if (result.isConfirmed) {
+                        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                        const response = await fetch(deleteUrl, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': token,
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            credentials: 'same-origin'
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Error deleting comment');
+                        }
+
+                        // Remove the comment element from the DOM
+                        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+                        if (commentElement) {
+                            commentElement.remove();
+                        }
+
+                        // Show success message
+                        await Swal.fire({
+                            title: 'Deleted!',
+                            text: data.message,
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                        // Refresh the page to update the comment count and other elements
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: error.message || 'Error deleting comment. Please try again.',
+                        icon: 'error'
+                    });
+                }
+            }
+
             document.addEventListener('DOMContentLoaded', function() {
                 const form = document.getElementById('comment-form');
                 const commentsList = document.getElementById('comments-list');
@@ -222,7 +282,12 @@
                     successAlert.classList.add('hidden');
 
                     try {
-                        const token = document.querySelector('meta[name="csrf-token"]').content;
+                        const token = document.querySelector('meta[name="csrf-token"]').getAttribute(
+                            'content');
+                        if (!token) {
+                            throw new Error('CSRF token not found');
+                        }
+
                         const response = await fetch('{{ route('admin.tasks.comments.store', $task) }}', {
                             method: 'POST',
                             headers: {
@@ -231,15 +296,16 @@
                                 'Accept': 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest'
                             },
+                            credentials: 'same-origin',
                             body: JSON.stringify({
-                                message
+                                message: message
                             })
                         });
 
                         const data = await response.json();
 
                         if (!response.ok) {
-                            throw new Error(data.message || 'Error posting comment');
+                            throw new Error(data.error || data.message || 'Error posting comment');
                         }
 
                         const commentHtml = `
@@ -255,10 +321,11 @@
                                             <p class="text-sm font-medium text-gray-900">${data.author}</p>
                                             <div class="flex items-center space-x-2">
                                                 <p class="text-sm text-gray-500">${data.created_at}</p>
-                                                <form action="/admin/tasks/${data.task_id}/comments/${data.id}" method="POST" class="inline">
+                                                <form action="/admin/tasks/{{ $task->id }}/comments/${data.id}" method="POST" class="inline" id="delete-comment-form-${data.id}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" onclick="return confirm('Are you sure you want to delete this comment?')"
+                                                    <button type="button"
+                                                        onclick="handleCommentDelete(${data.id}, '${data.deleteUrl}')"
                                                         class="text-red-600 hover:text-red-900">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

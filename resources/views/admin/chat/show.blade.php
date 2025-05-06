@@ -1,10 +1,6 @@
 @extends('layouts.admin')
 
 @section('content')
-    <meta name="user-id" content="{{ auth()->id() }}">
-    <meta name="user-type" content="{{ get_class(auth()->user()) }}">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-
     <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
 
     <div class="py-6">
@@ -102,6 +98,6 @@
     </div>
 
     @push('scripts')
-        <script src="{{ mix('js/chat.js') }}"></script>
+        @vite('resources/js/chat.js')
     @endpush
 @endsection

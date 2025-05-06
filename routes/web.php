@@ -11,6 +11,9 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Admin\AdminChatController;
 use App\Http\Controllers\Intern\InternChatController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Message;
 
 require __DIR__ . '/user.php';
 
@@ -60,3 +63,13 @@ Route::prefix('admin')->middleware('auth:admin')->name('admin.')->group(function
     Route::resource('admins', AdminController::class);
     Route::resource('roles', RoleController::class);
 });
+
+Route::post('/messages/mark-as-read', function (Request $request) {
+    $user = Auth::user();
+    Message::where('receiver_id', $user->id)
+        ->where('receiver_type', get_class($user))
+        ->whereNull('read_at')
+        ->update(['read_at' => now()]);
+
+    return response()->json(['status' => 'success']);
+})->middleware('auth');
