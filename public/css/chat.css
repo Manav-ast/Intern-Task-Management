@@ -61,7 +61,7 @@
 .message {
     display: flex;
     flex-direction: column;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
     max-width: 85%;
     animation: fadeIn 0.3s ease-out;
     position: relative;
@@ -70,7 +70,6 @@
 @media (min-width: 640px) {
     .message {
         max-width: 70%;
-        margin-bottom: 1rem;
     }
 }
 
@@ -88,13 +87,11 @@
 .message.sent {
     margin-left: auto;
     margin-right: 0.5rem;
-    align-items: flex-end;
 }
 
 .message.received {
     margin-right: auto;
     margin-left: 0.5rem;
-    align-items: flex-start;
 }
 
 @media (min-width: 640px) {
@@ -108,7 +105,7 @@
 }
 
 .message-content {
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem 1rem;
     border-radius: 1rem;
     position: relative;
     word-wrap: break-word;
@@ -128,18 +125,16 @@
     background-color: #4f46e5;
     color: white;
     border-bottom-right-radius: 0.3rem;
-    margin-left: auto;
 }
 
 .message.received .message-content {
     background-color: #e2e8f0;
     color: #1e293b;
     border-bottom-left-radius: 0.3rem;
-    margin-right: auto;
 }
 
 .message-time {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     margin-top: 0.25rem;
     display: flex;
     align-items: center;
@@ -160,6 +155,31 @@
 
 .message.received .message-time {
     color: #64748b;
+}
+
+.date-divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+    z-index: 1;
+}
+
+.date-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #e5e7eb;
+    z-index: -1;
+}
+
+.date-divider span {
+    background-color: #f8fafc;
+    padding: 0 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
 }
 
 .avatar {
@@ -310,23 +330,11 @@
 }
 
 .message.sending {
-    opacity: 0.7;
+    opacity: 1;
 }
 
 .message.sending .message-content {
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
-    }
+    animation: none;
 }
 
 .new-message-indicator {

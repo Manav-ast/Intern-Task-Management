@@ -15,8 +15,8 @@
                         </svg>
                     </a>
                     <div class="flex items-center ml-3 sm:ml-4">
-                        <div class="avatar" style="background-color: #059669;">
-                            {{ substr($otherUser->name, 0, 1) }}
+                        <div class="avatar inline-flex items-center justify-center" style="background-color: #4f46e5;">
+                            <span class="text-white">{{ substr($otherUser->name, 0, 1) }}</span>
                         </div>
                         <div class="ml-2 sm:ml-3">
                             <div class="flex items-center">
@@ -52,33 +52,12 @@
                             @endphp
                         @endif
 
-                        <div class="message {{ $message->sender_id === auth()->id() ? 'sent' : 'received' }}">
-                            <div class="message-sender">
-                                @if ($message->sender_id !== auth()->id())
-                                    <div class="flex items-center">
-                                        <span
-                                            class="text-xs sm:text-sm mr-1.5 sm:mr-2 text-gray-600">{{ $message->sender->name }}</span>
-                                        <span class="sender-role admin text-xs sm:text-sm">Admin</span>
-                                    </div>
-                                @else
-                                    <div class="flex items-center">
-                                        <span
-                                            class="text-xs sm:text-sm mr-1.5 sm:mr-2 text-gray-600">{{ auth()->user()->name }}</span>
-                                        <span class="sender-role intern text-xs sm:text-sm">Intern</span>
-                                    </div>
-                                @endif
-                            </div>
+                        <div class="message {{ $message->sender_id === auth()->id() ? 'sent' : 'received' }}"
+                            data-message-id="{{ $message->id }}">
                             <div class="message-content">
                                 <p class="mb-1 break-words">{{ $message->message }}</p>
                                 <div class="message-time">
                                     <span>{{ $message->created_at->format('g:i A') }}</span>
-                                    @if ($message->sender_id === auth()->id())
-                                        @if ($message->read_at)
-                                            <i class="fas fa-check-double text-xs sm:text-sm"></i>
-                                        @else
-                                            <i class="fas fa-check text-xs sm:text-sm"></i>
-                                        @endif
-                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -86,7 +65,7 @@
                 </div>
 
                 <div class="chat-input">
-                    <form id="message-form" action="{{ route('intern.chat.store', $otherUser->id) }}" method="POST">
+                    <form id="message-form" class="flex w-full">
                         @csrf
                         <input type="text" id="message-input" name="message" placeholder="Type a message..." required
                             class="focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -108,96 +87,167 @@
                 const messagesContainer = document.getElementById('chat-messages');
                 const messageForm = document.getElementById('message-form');
                 const messageInput = document.getElementById('message-input');
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const userId = {{ Auth::id() }};
+                const otherUserId = {{ $otherUser->id }};
 
-                // Scroll to bottom on load
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                // Scroll to bottom of messages
+                function scrollToBottom() {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+                scrollToBottom();
 
-                // Handle form submission
+                // Add new message to the chat
+                function appendMessage(message, isSender = true) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${isSender ? 'sent' : 'received'}`;
+                    messageDiv.setAttribute('data-message-id', message.id);
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+
+                    const messageText = document.createElement('p');
+                    messageText.className = 'mb-1 break-words';
+                    messageText.textContent = message.message;
+
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'message-time';
+
+                    const timeSpan = document.createElement('span');
+                    const messageDate = new Date(message.created_at);
+                    timeSpan.textContent = messageDate.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                    });
+
+                    timeDiv.appendChild(timeSpan);
+                    contentDiv.appendChild(messageText);
+                    contentDiv.appendChild(timeDiv);
+                    messageDiv.appendChild(contentDiv);
+
+                    const messagesContainer = document.getElementById('chat-messages');
+                    messagesContainer.appendChild(messageDiv);
+                    scrollToBottom();
+                }
+
+                // Listen for new messages
+                const channelName = `chat.${Math.min(userId, otherUserId)}.${Math.max(userId, otherUserId)}`;
+
+                // Message queue to handle concurrent messages
+                const messageQueue = new Set();
+
+                window.Echo.private(channelName)
+                    .listen('ChatMessageEvent', (e) => {
+                        // Only handle messages from the other user
+                        if (e.sender_id === userId) return;
+
+                        // Generate a unique key for this message
+                        const messageKey = `${e.id}-${e.created_at}`;
+
+                        // Check if we've already processed this message
+                        if (messageQueue.has(messageKey)) {
+                            console.log('Message already in queue, skipping:', e.id);
+                            return;
+                        }
+
+                        // Check if message already exists in the DOM
+                        const existingMessage = document.querySelector(`[data-message-id="${e.id}"]`);
+                        if (existingMessage) {
+                            console.log('Message already displayed, skipping:', e.id);
+                            return;
+                        }
+
+                        // Add to queue
+                        messageQueue.add(messageKey);
+
+                        // Remove from queue after 5 seconds
+                        setTimeout(() => {
+                            messageQueue.delete(messageKey);
+                        }, 5000);
+
+                        // Clear any existing timeout
+                        if (this.messageAddTimeout) {
+                            clearTimeout(this.messageAddTimeout);
+                        }
+
+                        // Add message with small delay to prevent race conditions
+                        this.messageAddTimeout = setTimeout(() => {
+                            appendMessage({
+                                id: e.id,
+                                message: e.message,
+                                created_at: e.created_at,
+                                sender_id: e.sender_id
+                            }, false);
+                        }, 50);
+                    });
+
+                // Handle message submission
                 messageForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
+
                     const message = messageInput.value.trim();
                     if (!message) return;
 
+                    // Generate a temporary ID for this message
+                    const tempId = `temp-${Date.now()}`;
+
+                    // Disable the input and button while sending
+                    messageInput.disabled = true;
+                    const submitButton = messageForm.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
+
                     try {
-                        const response = await fetch(this.action, {
+                        const response = await fetch('/intern/chat/{{ $otherUser->id }}', {
                             method: 'POST',
                             headers: {
-                                'X-CSRF-TOKEN': csrfToken,
                                 'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                    .content,
                                 'Accept': 'application/json'
                             },
                             body: JSON.stringify({
-                                message: message,
-                                _token: csrfToken
+                                message: message
                             })
                         });
 
                         const data = await response.json();
 
-                        if (!response.ok) {
-                            throw new Error(data.message || 'Failed to send message');
-                        }
-
-                        if (data.status === 'success' && data.message) {
-                            appendMessage(data.message, true);
+                        if (response.ok) {
+                            // Clear input first
                             messageInput.value = '';
-                            messageInput.focus();
+
+                            // Check if message already exists before appending
+                            const existingMessage = document.querySelector(
+                                `[data-message-id="${data.id}"]`);
+                            if (!existingMessage) {
+                                appendMessage({
+                                    id: data.id,
+                                    message: data.message,
+                                    created_at: data.created_at,
+                                    sender_id: userId
+                                }, true);
+                            }
                         } else {
-                            throw new Error('Invalid response format');
+                            throw new Error(data.error || 'Failed to send message');
                         }
                     } catch (error) {
-                        console.error('Error:', error);
-                        // Show a more user-friendly error message
-                        const errorMessage = document.createElement('div');
-                        errorMessage.className = 'error-message animate-fade-in';
-                        errorMessage.textContent = 'Message could not be sent. Please try again.';
-                        messageForm.insertAdjacentElement('beforebegin', errorMessage);
-
-                        // Remove error message after 3 seconds
-                        setTimeout(() => {
-                            errorMessage.remove();
-                        }, 3000);
+                        console.error('Error sending message:', error);
+                        showError(error.message ||
+                            'Network error. Please check your connection and try again.');
+                    } finally {
+                        // Re-enable the input and button
+                        messageInput.disabled = false;
+                        submitButton.disabled = false;
+                        messageInput.focus();
                     }
                 });
 
-                // Handle message input on mobile
-                messageInput.addEventListener('focus', function() {
-                    setTimeout(() => {
-                        window.scrollTo(0, 0);
-                        document.body.scrollTop = 0;
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    }, 100);
-                });
-
-                function appendMessage(message, isSent) {
-                    const time = new Date(message.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
-                    const messageHtml = `
-                        <div class="message ${isSent ? 'sent' : 'received'} animate-fade-in">
-                            <div class="message-sender">
-                                <div class="flex items-center">
-                                    <span class="text-xs sm:text-sm mr-1.5 sm:mr-2 text-gray-600">${message.sender.name}</span>
-                                    <span class="sender-role ${isSent ? 'intern' : 'admin'} text-xs sm:text-sm">
-                                        ${isSent ? 'Intern' : 'Admin'}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="message-content">
-                                <p class="mb-1 break-words">${message.message}</p>
-                                <div class="message-time">
-                                    <span>${time}</span>
-                                    ${isSent ? '<i class="fas fa-check text-xs sm:text-sm"></i>' : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                function showError(message) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = message;
+                    messageForm.insertAdjacentElement('beforebegin', errorDiv);
+                    setTimeout(() => errorDiv.remove(), 5000);
                 }
             });
         </script>

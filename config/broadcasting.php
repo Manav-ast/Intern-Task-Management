@@ -4,20 +4,6 @@ return [
     'default' => env('BROADCAST_DRIVER', 'null'),
 
     'connections' => [
-        'pusher' => [
-            'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY'),
-            'secret' => env('PUSHER_APP_SECRET'),
-            'app_id' => env('PUSHER_APP_ID'),
-            'options' => [
-                'cluster' => 'ap2',
-                'useTLS' => true
-            ],
-            'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
-            ],
-        ],
-
         'ably' => [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),

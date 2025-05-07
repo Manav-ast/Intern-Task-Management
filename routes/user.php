@@ -6,6 +6,7 @@ use App\Http\Controllers\Intern\InternTaskController;
 use App\Http\Controllers\Intern\TaskController;
 use App\Http\Controllers\Intern\InternChatController;
 use App\Http\Controllers\Intern\ProfileController;
+use App\Http\Controllers\ChatController;
 
 // Intern Routes
 Route::prefix('intern')->middleware('guest:intern')->group(function () {
@@ -30,9 +31,9 @@ Route::prefix('intern')->middleware('auth:intern')->group(function () {
 
     // Chat routes
     Route::prefix('chat')->name('intern.chat.')->group(function () {
-        Route::get('/', [InternChatController::class, 'index'])->name('index');
-        Route::get('/users', [InternChatController::class, 'getUsers'])->name('users');
-        Route::get('/{id}', [InternChatController::class, 'show'])->name('show');
-        Route::post('/{id}', [InternChatController::class, 'store'])->name('store');
+        Route::get('/', [ChatController::class, 'index'])->name('index');
+        Route::get('/users', [ChatController::class, 'getUsers'])->name('users');
+        Route::get('/{id}', [ChatController::class, 'show'])->name('show');
+        Route::post('/{id}', [ChatController::class, 'store'])->name('store');
     });
 });

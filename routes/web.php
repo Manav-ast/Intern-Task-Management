@@ -9,8 +9,6 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\ChatController;
-use App\Http\Controllers\Admin\AdminChatController;
-use App\Http\Controllers\Intern\InternChatController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Message;
@@ -19,10 +17,10 @@ require __DIR__ . '/user.php';
 
 // Chat Routes
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.chat.')->group(function () {
-    Route::get('/chat', [AdminChatController::class, 'index'])->name('index');
-    Route::get('/chat/users', [AdminChatController::class, 'getUsers'])->name('users');
-    Route::get('/chat/{id}', [AdminChatController::class, 'show'])->name('show');
-    Route::post('/chat/{id}', [AdminChatController::class, 'store'])->name('store');
+    Route::get('/chat', [ChatController::class, 'index'])->name('index');
+    Route::get('/chat/users', [ChatController::class, 'getUsers'])->name('users');
+    Route::get('/chat/{id}', [ChatController::class, 'show'])->name('show');
+    Route::post('/chat/{id}', [ChatController::class, 'store'])->name('store');
 });
 
 // Admin Routes

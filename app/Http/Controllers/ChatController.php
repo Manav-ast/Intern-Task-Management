@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Message;
 use App\Models\Admin;
 use App\Models\Intern;
+use App\Events\ChatMessageEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 
 class ChatController extends Controller
 {
@@ -26,8 +29,8 @@ class ChatController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
-            $view = $user instanceof Admin ? 'admin.chat.index' : 'intern.chat.index';
-            return view($view, compact('messages'));
+            $viewPrefix = $user instanceof Admin ? 'admin' : 'intern';
+            return view($viewPrefix . '.chat.index', compact('messages'));
         } catch (\Exception $e) {
             Log::error('Error loading chat index: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error loading chat messages. Please try again.');
@@ -38,7 +41,9 @@ class ChatController extends Controller
     {
         try {
             $user = Auth::user();
-            $otherUser = $user instanceof Admin ? Intern::findOrFail($id) : Admin::findOrFail($id);
+            $otherUser = $user instanceof Admin
+                ? Intern::findOrFail($id)
+                : Admin::findOrFail($id);
 
             $messages = Message::where(function ($query) use ($user, $otherUser) {
                 $query->where('sender_id', $user->id)
@@ -61,11 +66,13 @@ class ChatController extends Controller
                 ->whereNull('read_at')
                 ->each->markAsRead();
 
-            $view = $user instanceof Admin ? 'admin.chat.show' : 'intern.chat.show';
-            return view($view, compact('messages', 'otherUser'));
+            $viewPrefix = $user instanceof Admin ? 'admin' : 'intern';
+            return view($viewPrefix . '.chat.show', compact('messages', 'otherUser'));
         } catch (\Exception $e) {
             Log::error('Error loading chat conversation: ' . $e->getMessage());
-            return redirect()->route('chat.index')->with('error', 'Error loading chat conversation. Please try again.');
+            $routePrefix = $user instanceof Admin ? 'admin.chat' : 'intern.chat';
+            return redirect()->route($routePrefix . '.index')
+                ->with('error', 'Error loading chat conversation. Please try again.');
         }
     }
 
@@ -77,7 +84,12 @@ class ChatController extends Controller
             ]);
 
             $user = Auth::user();
-            $otherUser = $user instanceof Admin ? Intern::findOrFail($id) : Admin::findOrFail($id);
+            $otherUser = $user instanceof Admin
+                ? Intern::findOrFail($id)
+                : Admin::findOrFail($id);
+
+            // Begin transaction to ensure atomicity
+            DB::beginTransaction();
 
             $message = Message::create([
                 'message' => $request->message,
@@ -87,10 +99,41 @@ class ChatController extends Controller
                 'receiver_type' => get_class($otherUser),
             ]);
 
+            $messageData = [
+                'id' => $message->id,
+                'message' => $message->message,
+                'created_at' => $message->created_at,
+                'sender_id' => $message->sender_id,
+                'receiver_id' => $message->receiver_id
+            ];
+
+            // Broadcast event only once and only to others
+            broadcast(new ChatMessageEvent($messageData))->toOthers();
+
+            DB::commit();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json($messageData);
+            }
+
             return redirect()->back()->with('success', 'Message sent successfully.');
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'error' => $e->errors()['message'][0] ?? 'Invalid message'
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Error sending message: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error sending message. Please try again.')->withInput();
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'error' => 'Server error occurred while sending message'
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Failed to send message. Please try again.');
         }
     }
 
@@ -98,15 +141,10 @@ class ChatController extends Controller
     {
         try {
             $user = Auth::user();
+            $users = $user instanceof Admin ? Intern::paginate(20) : Admin::paginate(20);
 
-            if ($user instanceof Admin) {
-                $users = Intern::all();
-            } else {
-                $users = Admin::all();
-            }
-
-            $view = $user instanceof Admin ? 'admin.chat.users' : 'chat.users';
-            return view($view, compact('users'));
+            $viewPrefix = $user instanceof Admin ? 'admin' : 'intern';
+            return view($viewPrefix . '.chat.users', compact('users'));
         } catch (\Exception $e) {
             Log::error('Error loading chat users: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error loading users. Please try again.');
