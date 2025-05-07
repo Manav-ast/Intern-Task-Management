@@ -1,38 +1,48 @@
 <?php
 
+use App\Http\Controllers\Intern\{
+    InternAuthController,
+    InternTaskController,
+    TaskController,
+    InternChatController,
+    ProfileController
+};
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Intern\InternAuthController;
-use App\Http\Controllers\Intern\InternTaskController;
-use App\Http\Controllers\Intern\TaskController;
-use App\Http\Controllers\Intern\InternChatController;
-use App\Http\Controllers\Intern\ProfileController;
 
-// Intern Routes
-Route::prefix('intern')->middleware('guest:intern')->group(function () {
-    Route::get('/login', [InternAuthController::class, 'showLoginForm'])->name('intern.login');
-    Route::post('/login', [InternAuthController::class, 'login']);
-    Route::get('/register', [InternAuthController::class, 'showRegisterForm'])->name('intern.register');
-    Route::post('/register', [InternAuthController::class, 'register']);
-});
+Route::prefix('intern')->name('intern.')->group(function () {
+    // Guest routes
+    Route::middleware('guest:intern')->group(function () {
+        Route::get('/login', [InternAuthController::class, 'showLoginForm'])->name('login');
+        Route::post('/login', [InternAuthController::class, 'login']);
+        Route::get('/register', [InternAuthController::class, 'showRegisterForm'])->name('register');
+        Route::post('/register', [InternAuthController::class, 'register']);
+    });
 
-Route::prefix('intern')->middleware('auth:intern')->group(function () {
-    Route::get('/dashboard', fn() => view('intern.dashboard'))->name('intern.dashboard');
-    Route::post('/logout', [InternAuthController::class, 'logout'])->name('intern.logout');
+    // Authenticated routes
+    Route::middleware('auth:intern')->group(function () {
+        // Dashboard
+        Route::view('/dashboard', 'intern.dashboard')->name('dashboard');
+        Route::post('/logout', [InternAuthController::class, 'logout'])->name('logout');
 
-    // Profile routes
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('intern.profile.edit');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('intern.profile.update');
+        // Profile
+        Route::controller(ProfileController::class)->prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', 'edit')->name('edit');
+            Route::put('/', 'update')->name('update');
+        });
 
-    // Task routes
-    Route::get('/tasks', [TaskController::class, 'index'])->name('intern.tasks.index');
-    Route::get('/tasks/{task}', [TaskController::class, 'show'])->name('intern.tasks.show');
-    Route::post('/tasks/{task}/comments', [TaskController::class, 'addComment'])->name('intern.tasks.comments.store');
+        // Tasks
+        Route::controller(TaskController::class)->prefix('tasks')->name('tasks.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/{task}', 'show')->name('show');
+            Route::post('/{task}/comments', 'addComment')->name('comments.store');
+        });
 
-    // Chat routes
-    Route::prefix('chat')->name('intern.chat.')->group(function () {
-        Route::get('/', [InternChatController::class, 'index'])->name('index');
-        Route::get('/users', [InternChatController::class, 'getUsers'])->name('users');
-        Route::get('/{id}', [InternChatController::class, 'show'])->name('show');
-        Route::post('/{id}', [InternChatController::class, 'store'])->name('store');
+        // Chat
+        Route::controller(InternChatController::class)->prefix('chat')->name('chat.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/users', 'getUsers')->name('users');
+            Route::get('/{id}', 'show')->name('show');
+            Route::post('/{id}', 'store')->name('store');
+        });
     });
 });
