@@ -1,5 +1,6 @@
 import './bootstrap';
 import './chat';
+import './select2-setup';
 
 // Add CSRF token to all fetch requests
 document.addEventListener('DOMContentLoaded', function () {

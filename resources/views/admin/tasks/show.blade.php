@@ -4,14 +4,16 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-6">
-                <a href="{{ route('admin.tasks.index') }}"
-                    class="inline-flex items-center text-indigo-600 hover:text-indigo-900 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Back to Tasks
-                </a>
+                @can('view-tasks')
+                    <a href="{{ route('admin.tasks.index') }}"
+                        class="inline-flex items-center text-indigo-600 hover:text-indigo-900 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Tasks
+                    </a>
+                @endcan
             </div>
 
             <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
@@ -30,20 +32,24 @@
                                 {{ ucfirst(str_replace('_', ' ', $task->status)) }}
                             </span>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
-                                <a href="{{ route('admin.tasks.edit', $task) }}"
-                                    class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition">
-                                    Edit Task
-                                </a>
-                                <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST"
-                                    class="flex-1 sm:flex-none" id="delete-task-form">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="button"
-                                        onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form').submit())"
-                                        class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition">
-                                        Delete
-                                    </button>
-                                </form>
+                                @can('edit-tasks')
+                                    <a href="{{ route('admin.tasks.edit', $task) }}"
+                                        class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition">
+                                        Edit Task
+                                    </a>
+                                @endcan
+                                @can('delete-tasks')
+                                    <form action="{{ route('admin.tasks.destroy', $task) }}" method="POST"
+                                        class="flex-1 sm:flex-none" id="delete-task-form">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button"
+                                            onclick="confirmDelete('Delete Task', 'Are you sure you want to delete this task? This action cannot be undone.', () => document.getElementById('delete-task-form').submit())"
+                                            class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition">
+                                            Delete
+                                        </button>
+                                    </form>
+                                @endcan
                             </div>
                         </div>
                     </div>

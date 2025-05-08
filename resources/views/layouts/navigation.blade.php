@@ -20,6 +20,9 @@
                     @foreach ($navLinks as $link)
                         <x-nav-link :href="route($link['route'])" :active="request()->routeIs($link['route'] . '*')">
                             {{ $link['label'] }}
+                            @if ($link['route'] === 'admin.chat.index')
+                                <!-- Chat notification badge will be injected here by JS -->
+                            @endif
                         </x-nav-link>
                     @endforeach
                 </div>
@@ -57,9 +60,28 @@
             @foreach ($navLinks as $link)
                 <x-nav-link :href="route($link['route'])" :active="request()->routeIs($link['route'] . '*')" :mobile="true">
                     {{ $link['label'] }}
+                    @if ($link['route'] === 'admin.chat.index')
+                        <!-- Chat notification badge will be injected here by JS -->
+                    @endif
                 </x-nav-link>
             @endforeach
         </div>
         <x-profile-dropdown mobile />
     </div>
 </nav>
+
+<style>
+    .chat-nav-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        background-color: #4f46e5;
+        border-radius: 9999px;
+        margin-left: 0.5rem;
+    }
+</style>

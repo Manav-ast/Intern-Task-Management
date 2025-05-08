@@ -17,7 +17,11 @@ class Chat {
 
         this.initializeEventListeners();
         this.scrollToBottom();
-        this.markMessagesAsRead();
+
+        // Mark messages as read if we're in a chat
+        if (this.otherUserId) {
+            this.markMessagesAsRead();
+        }
 
         // Mark as initialized to prevent double initialization
         this.$messageForm.attr('data-chat-initialized', 'true');
@@ -110,6 +114,10 @@ class Chat {
             method: 'POST',
             data: {
                 _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: () => {
+                // Update chat notification badge
+                updateUnreadCount();
             }
         });
     }
@@ -122,7 +130,49 @@ class Chat {
 
 // Initialize chat when document is ready
 $(document).ready(() => {
+    // Initialize chat if on a chat page
     if ($('.chat-container').length) {
         new Chat();
     }
+
+    // Initialize unread message counter for all pages
+    updateUnreadCount();
+
+    // Setup polling for unread messages every 30 seconds
+    setInterval(updateUnreadCount, 30000);
 });
+
+// Function to update unread count in the navbar
+function updateUnreadCount() {
+    $.ajax({
+        url: '/messages/unread-count',
+        method: 'GET',
+        success: (response) => {
+            const unreadCount = response.unread_count;
+
+            // Update the badge in the navbar
+            const $chatNavLink = $('.chat-nav-badge');
+
+            if (unreadCount > 0) {
+                // If badge doesn't exist, create it
+                if ($chatNavLink.length === 0) {
+                    // Add badge to desktop navigation
+                    $('a[href*="chat.index"]').each(function () {
+                        const $link = $(this);
+                        if (!$link.find('.chat-nav-badge').length) {
+                            $link.append(`<span class="chat-nav-badge">${unreadCount}</span>`);
+                        } else {
+                            $link.find('.chat-nav-badge').text(unreadCount);
+                        }
+                    });
+                } else {
+                    // Update existing badge
+                    $chatNavLink.text(unreadCount);
+                }
+            } else {
+                // Remove badge if count is 0
+                $('.chat-nav-badge').remove();
+            }
+        }
+    });
+}

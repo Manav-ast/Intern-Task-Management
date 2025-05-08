@@ -79,7 +79,8 @@
                         <div>
                             <label for="interns" class="block text-sm font-medium text-gray-700">Assigned Interns</label>
                             <select name="interns[]" id="interns" multiple
-                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 p-4  focus:border-indigo-500 sm:text-sm">
+                                class="select2-multiple mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                data-placeholder="Search and select interns...">
                                 @foreach ($interns as $intern)
                                     <option value="{{ $intern->id }}"
                                         {{ in_array($intern->id, old('interns', $selectedInterns)) ? 'selected' : '' }}>
@@ -113,13 +114,12 @@
     @push('scripts')
         <script>
             $(document).ready(function() {
-                $('#interns').select2({
+                $('.select2-multiple').select2({
                     theme: 'classic',
                     placeholder: 'Select interns',
                     allowClear: true,
                     width: '100%'
                 });
-
                 // Initialize form validation
                 $('#editTaskForm').validate({
                     ignore: [], // Don't ignore hidden inputs (important for select2)
@@ -191,20 +191,7 @@
     @endpush
 
     @push('styles')
-        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
         <style>
-            .select2-container--classic .select2-selection--multiple {
-                border-color: #D1D5DB !important;
-                border-radius: 0.375rem !important;
-            }
-
-            .select2-container--classic .select2-selection--multiple:focus {
-                border-color: #6366F1 !important;
-                box-shadow: 0 0 0 1px #6366F1 !important;
-            }
-
-
-
             /* Validation Styles */
             .error {
                 color: #dc2626;
@@ -216,10 +203,6 @@
             input.error,
             textarea.error,
             select.error {
-                border-color: #dc2626 !important;
-            }
-
-            .select2-container--classic .select2-selection--multiple.error {
                 border-color: #dc2626 !important;
             }
         </style>

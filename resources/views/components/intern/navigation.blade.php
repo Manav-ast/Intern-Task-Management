@@ -11,6 +11,7 @@
         </x-nav-link>
         <x-nav-link href="{{ route('intern.chat.index') }}" :active="request()->routeIs('intern.chat.*')">
             Chat
+            <!-- Chat notification badge will be injected here by JS -->
         </x-nav-link>
     </div>
 @else
@@ -24,6 +25,23 @@
         </x-responsive-nav-link>
         <x-responsive-nav-link href="{{ route('intern.chat.index') }}" :active="request()->routeIs('intern.chat.*')">
             Chat
+            <!-- Chat notification badge will be injected here by JS -->
         </x-responsive-nav-link>
     </div>
 @endif
+
+<style>
+    .chat-nav-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+        background-color: #4f46e5;
+        border-radius: 9999px;
+        margin-left: 0.5rem;
+    }
+</style>

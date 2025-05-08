@@ -15,6 +15,14 @@ use App\Models\Message;
 
 require __DIR__ . '/user.php';
 
+Route::get('/', function () {
+    if (Auth::guard('admin')->check()) {
+        return redirect()->route('admin.dashboard');
+    } elseif (Auth::guard('intern')->check()) {
+        return redirect()->route('intern.dashboard');
+    }
+    return redirect()->route('intern.login');
+})->name('home');
 // Chat Routes
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.chat.')->group(function () {
     Route::get('/chat', [ChatController::class, 'index'])->name('index');
@@ -66,6 +74,32 @@ Route::post('/messages/mark-as-read', function (Request $request) {
     $user = Auth::user();
     Message::where('receiver_id', $user->id)
         ->where('receiver_type', get_class($user))
+        ->whereNull('read_at')
+        ->update(['read_at' => now()]);
+
+    return response()->json(['status' => 'success']);
+})->middleware('auth');
+
+// Get unread message count
+Route::get('/messages/unread-count', function (Request $request) {
+    $user = Auth::user();
+    $unreadCount = Message::where('receiver_id', $user->id)
+        ->where('receiver_type', get_class($user))
+        ->whereNull('read_at')
+        ->count();
+
+    return response()->json(['unread_count' => $unreadCount]);
+})->middleware('auth');
+
+// Mark messages from a specific sender as read
+Route::post('/messages/mark-as-read/{userId}', function (Request $request, $userId) {
+    $user = Auth::user();
+    $otherUserType = $user instanceof \App\Models\Admin ? \App\Models\Intern::class : \App\Models\Admin::class;
+
+    Message::where('receiver_id', $user->id)
+        ->where('receiver_type', get_class($user))
+        ->where('sender_id', $userId)
+        ->where('sender_type', $otherUserType)
         ->whereNull('read_at')
         ->update(['read_at' => now()]);
 

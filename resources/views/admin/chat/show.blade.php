@@ -83,54 +83,40 @@
 
     @push('scripts')
         <script>
-            // Disable global chat.js by marking this form as already handled
-            document.addEventListener('DOMContentLoaded', function() {
+            $(document).ready(function() {
                 // Mark the form to prevent global chat.js handling
-                document.getElementById('message-form').setAttribute('data-chat-initialized', 'true');
+                $('#message-form').attr('data-chat-initialized', 'true');
 
-                const messagesContainer = document.getElementById('chat-messages');
-                const messageForm = document.getElementById('message-form');
-                const messageInput = document.getElementById('message-input');
+                const $messagesContainer = $('#chat-messages');
+                const $messageForm = $('#message-form');
+                const $messageInput = $('#message-input');
                 const userId = {{ Auth::id() }};
                 const otherUserId = {{ $otherUser->id }};
 
                 // Scroll to bottom of messages
                 function scrollToBottom() {
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
                 }
                 scrollToBottom();
 
                 // Add new message to the chat
                 function appendMessage(message, isSender = true) {
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `message ${isSender ? 'sent' : 'received'}`;
-                    messageDiv.setAttribute('data-message-id', message.id);
+                    const messageHtml = `
+                        <div class="message ${isSender ? 'sent' : 'received'}" data-message-id="${message.id}">
+                            <div class="message-content">
+                                <p class="mb-1 break-words">${$('<div>').text(message.message).html()}</p>
+                                <div class="message-time">
+                                    <span>${new Date(message.created_at).toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: 'numeric',
+                                        hour12: true
+                                    })}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
 
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'message-content';
-
-                    const messageText = document.createElement('p');
-                    messageText.className = 'mb-1 break-words';
-                    messageText.textContent = message.message;
-
-                    const timeDiv = document.createElement('div');
-                    timeDiv.className = 'message-time';
-
-                    const timeSpan = document.createElement('span');
-                    const messageDate = new Date(message.created_at);
-                    timeSpan.textContent = messageDate.toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        hour12: true
-                    });
-
-                    timeDiv.appendChild(timeSpan);
-                    contentDiv.appendChild(messageText);
-                    contentDiv.appendChild(timeDiv);
-                    messageDiv.appendChild(contentDiv);
-
-                    const messagesContainer = document.getElementById('chat-messages');
-                    messagesContainer.appendChild(messageDiv);
+                    $messagesContainer.append(messageHtml);
                     scrollToBottom();
                 }
 
@@ -149,12 +135,8 @@
                             return;
                         }
 
-                        // Generate a unique key for this message
-                        const messageKey = `${e.id}-${e.created_at}`;
-
                         // Check if message already exists in the DOM
-                        const existingMessage = document.querySelector(`[data-message-id="${e.id}"]`);
-                        if (existingMessage) {
+                        if ($(`[data-message-id="${e.id}"]`).length > 0) {
                             console.log('Message already displayed, skipping:', e.id);
                             return;
                         }
@@ -172,7 +154,7 @@
 
                 // Handle message submission
                 let isSubmitting = false; // Flag to prevent duplicate submissions
-                messageForm.addEventListener('submit', async function(e) {
+                $messageForm.on('submit', function(e) {
                     e.preventDefault();
 
                     // If already submitting, prevent duplicate
@@ -181,40 +163,30 @@
                         return;
                     }
 
-                    const message = messageInput.value.trim();
+                    const message = $messageInput.val().trim();
                     if (!message) return;
 
                     // Set submitting flag to true
                     isSubmitting = true;
 
                     // Disable the input and button while sending
-                    messageInput.disabled = true;
-                    const submitButton = messageForm.querySelector('button[type="submit"]');
-                    submitButton.disabled = true;
+                    $messageInput.prop('disabled', true);
+                    const $submitButton = $messageForm.find('button[type="submit"]');
+                    $submitButton.prop('disabled', true);
 
-                    try {
-                        console.log('Sending message:', message);
-                        const response = await fetch('/admin/chat/{{ $otherUser->id }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                    .content,
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                message: message,
-                                _token: document.querySelector('meta[name="csrf-token"]')
-                                    .content
-                            })
-                        });
+                    $.ajax({
+                        url: '/admin/chat/{{ $otherUser->id }}',
+                        method: 'POST',
+                        data: {
+                            message: message,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            console.log('Server response:', data);
 
-                        const data = await response.json();
-                        console.log('Server response:', data);
-
-                        if (response.ok) {
                             // Clear input first
-                            messageInput.value = '';
+                            $messageInput.val('');
 
                             appendMessage({
                                 id: data.id,
@@ -222,24 +194,30 @@
                                 created_at: data.created_at,
                                 sender_id: userId
                             }, true);
-                        } else {
-                            throw new Error(data.error || 'Failed to send message');
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error sending message:', error);
+                            // Show error message
+                            const errorHtml = `
+                                <div class="error-message" role="alert">
+                                    <p class="font-medium">${xhr.responseJSON?.error || 'Failed to send message'}</p>
+                                </div>
+                            `;
+                            const $error = $(errorHtml).hide();
+                            $messageForm.before($error);
+                            $error.fadeIn('slow');
+                            setTimeout(() => $error.fadeOut('slow', function() {
+                                $(this).remove();
+                            }), 5000);
+                        },
+                        complete: function() {
+                            // Re-enable the input and button
+                            $messageInput.prop('disabled', false);
+                            $submitButton.prop('disabled', false);
+                            $messageInput.focus();
+                            isSubmitting = false; // Reset submitting flag
                         }
-                    } catch (error) {
-                        console.error('Error sending message:', error);
-                        // Show error message
-                        const errorDiv = document.createElement('div');
-                        errorDiv.className = 'error-message';
-                        errorDiv.textContent = error.message || 'Failed to send message';
-                        messageForm.insertAdjacentElement('beforebegin', errorDiv);
-                        setTimeout(() => errorDiv.remove(), 5000);
-                    } finally {
-                        // Re-enable the input and button
-                        messageInput.disabled = false;
-                        submitButton.disabled = false;
-                        messageInput.focus();
-                        isSubmitting = false; // Reset submitting flag
-                    }
+                    });
                 });
             });
         </script>
