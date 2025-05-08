@@ -83,7 +83,11 @@
 
     @push('scripts')
         <script>
+            // Disable global chat.js by marking this form as already handled
             document.addEventListener('DOMContentLoaded', function() {
+                // Mark the form to prevent global chat.js handling
+                document.getElementById('message-form').setAttribute('data-chat-initialized', 'true');
+
                 const messagesContainer = document.getElementById('chat-messages');
                 const messageForm = document.getElementById('message-form');
                 const messageInput = document.getElementById('message-input');
@@ -98,6 +102,18 @@
 
                 // Add new message to the chat
                 function appendMessage(message, isSender = true) {
+                    console.log('Appending message:', {
+                        message,
+                        isSender
+                    });
+
+                    // Check if message already exists
+                    const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
+                    if (existingMessage) {
+                        console.log('Message already exists, skipping append:', message.id);
+                        return;
+                    }
+
                     const messageDiv = document.createElement('div');
                     messageDiv.className = `message ${isSender ? 'sent' : 'received'}`;
                     messageDiv.setAttribute('data-message-id', message.id);
@@ -133,63 +149,40 @@
                 // Listen for new messages
                 const channelName = `chat.${Math.min(userId, otherUserId)}.${Math.max(userId, otherUserId)}`;
 
-                // Message queue to handle concurrent messages
-                const messageQueue = new Set();
-
                 window.Echo.private(channelName)
                     .listen('ChatMessageEvent', (e) => {
+                        console.log('Received WebSocket message:', e);
+
                         // Only handle messages from the other user
-                        if (e.sender_id === userId) return;
-
-                        // Generate a unique key for this message
-                        const messageKey = `${e.id}-${e.created_at}`;
-
-                        // Check if we've already processed this message
-                        if (messageQueue.has(messageKey)) {
-                            console.log('Message already in queue, skipping:', e.id);
+                        if (e.sender_id === userId) {
+                            console.log('Ignoring own message from WebSocket:', e.id);
                             return;
                         }
 
-                        // Check if message already exists in the DOM
-                        const existingMessage = document.querySelector(`[data-message-id="${e.id}"]`);
-                        if (existingMessage) {
-                            console.log('Message already displayed, skipping:', e.id);
-                            return;
-                        }
-
-                        // Add to queue
-                        messageQueue.add(messageKey);
-
-                        // Remove from queue after 5 seconds
-                        setTimeout(() => {
-                            messageQueue.delete(messageKey);
-                        }, 5000);
-
-                        // Clear any existing timeout
-                        if (this.messageAddTimeout) {
-                            clearTimeout(this.messageAddTimeout);
-                        }
-
-                        // Add message with small delay to prevent race conditions
-                        this.messageAddTimeout = setTimeout(() => {
-                            appendMessage({
-                                id: e.id,
-                                message: e.message,
-                                created_at: e.created_at,
-                                sender_id: e.sender_id
-                            }, false);
-                        }, 50);
+                        appendMessage({
+                            id: e.id,
+                            message: e.message,
+                            created_at: e.created_at,
+                            sender_id: e.sender_id
+                        }, false);
                     });
 
                 // Handle message submission
+                let isSubmitting = false; // Flag to prevent duplicate submissions
                 messageForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
+
+                    // If already submitting, prevent duplicate
+                    if (isSubmitting) {
+                        console.log('Message already being sent, preventing duplicate');
+                        return;
+                    }
 
                     const message = messageInput.value.trim();
                     if (!message) return;
 
-                    // Generate a temporary ID for this message
-                    const tempId = `temp-${Date.now()}`;
+                    // Set submitting flag to true
+                    isSubmitting = true;
 
                     // Disable the input and button while sending
                     messageInput.disabled = true;
@@ -197,6 +190,7 @@
                     submitButton.disabled = true;
 
                     try {
+                        console.log('Sending message:', message);
                         const response = await fetch('/intern/chat/{{ $otherUser->id }}', {
                             method: 'POST',
                             headers: {
@@ -211,22 +205,18 @@
                         });
 
                         const data = await response.json();
+                        console.log('Server response:', data);
 
                         if (response.ok) {
                             // Clear input first
                             messageInput.value = '';
 
-                            // Check if message already exists before appending
-                            const existingMessage = document.querySelector(
-                                `[data-message-id="${data.id}"]`);
-                            if (!existingMessage) {
-                                appendMessage({
-                                    id: data.id,
-                                    message: data.message,
-                                    created_at: data.created_at,
-                                    sender_id: userId
-                                }, true);
-                            }
+                            appendMessage({
+                                id: data.id,
+                                message: data.message,
+                                created_at: data.created_at,
+                                sender_id: userId
+                            }, true);
                         } else {
                             throw new Error(data.error || 'Failed to send message');
                         }
@@ -239,6 +229,7 @@
                         messageInput.disabled = false;
                         submitButton.disabled = false;
                         messageInput.focus();
+                        isSubmitting = false; // Reset submitting flag
                     }
                 });
 

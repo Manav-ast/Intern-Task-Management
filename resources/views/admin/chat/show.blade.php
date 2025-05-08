@@ -83,7 +83,11 @@
 
     @push('scripts')
         <script>
+            // Disable global chat.js by marking this form as already handled
             document.addEventListener('DOMContentLoaded', function() {
+                // Mark the form to prevent global chat.js handling
+                document.getElementById('message-form').setAttribute('data-chat-initialized', 'true');
+
                 const messagesContainer = document.getElementById('chat-messages');
                 const messageForm = document.getElementById('message-form');
                 const messageInput = document.getElementById('message-input');
@@ -135,20 +139,18 @@
 
                 // Message queue to handle concurrent messages
                 const messageQueue = new Set();
+                const processedMessages = new Set();
 
                 window.Echo.private(channelName)
                     .listen('ChatMessageEvent', (e) => {
                         // Only handle messages from the other user
-                        if (e.sender_id === userId) return;
+                        if (e.sender_id === userId) {
+                            console.log('Ignoring own message from WebSocket:', e.id);
+                            return;
+                        }
 
                         // Generate a unique key for this message
                         const messageKey = `${e.id}-${e.created_at}`;
-
-                        // Check if we've already processed this message
-                        if (messageQueue.has(messageKey)) {
-                            console.log('Message already in queue, skipping:', e.id);
-                            return;
-                        }
 
                         // Check if message already exists in the DOM
                         const existingMessage = document.querySelector(`[data-message-id="${e.id}"]`);
@@ -157,21 +159,8 @@
                             return;
                         }
 
-                        // Add to queue
-                        messageQueue.add(messageKey);
-
-                        // Remove from queue after 5 seconds
-                        setTimeout(() => {
-                            messageQueue.delete(messageKey);
-                        }, 5000);
-
-                        // Clear any existing timeout
-                        if (this.messageAddTimeout) {
-                            clearTimeout(this.messageAddTimeout);
-                        }
-
                         // Add message with small delay to prevent race conditions
-                        this.messageAddTimeout = setTimeout(() => {
+                        setTimeout(() => {
                             appendMessage({
                                 id: e.id,
                                 message: e.message,
@@ -182,14 +171,21 @@
                     });
 
                 // Handle message submission
+                let isSubmitting = false; // Flag to prevent duplicate submissions
                 messageForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
+
+                    // If already submitting, prevent duplicate
+                    if (isSubmitting) {
+                        console.log('Message already being sent, preventing duplicate');
+                        return;
+                    }
 
                     const message = messageInput.value.trim();
                     if (!message) return;
 
-                    // Generate a temporary ID for this message
-                    const tempId = `temp-${Date.now()}`;
+                    // Set submitting flag to true
+                    isSubmitting = true;
 
                     // Disable the input and button while sending
                     messageInput.disabled = true;
@@ -197,6 +193,7 @@
                     submitButton.disabled = true;
 
                     try {
+                        console.log('Sending message:', message);
                         const response = await fetch('/admin/chat/{{ $otherUser->id }}', {
                             method: 'POST',
                             headers: {
@@ -206,49 +203,44 @@
                                 'Accept': 'application/json'
                             },
                             body: JSON.stringify({
-                                message: message
+                                message: message,
+                                _token: document.querySelector('meta[name="csrf-token"]')
+                                    .content
                             })
                         });
 
                         const data = await response.json();
+                        console.log('Server response:', data);
 
                         if (response.ok) {
                             // Clear input first
                             messageInput.value = '';
 
-                            // Check if message already exists before appending
-                            const existingMessage = document.querySelector(
-                                `[data-message-id="${data.id}"]`);
-                            if (!existingMessage) {
-                                appendMessage({
-                                    id: data.id,
-                                    message: data.message,
-                                    created_at: data.created_at,
-                                    sender_id: userId
-                                }, true);
-                            }
+                            appendMessage({
+                                id: data.id,
+                                message: data.message,
+                                created_at: data.created_at,
+                                sender_id: userId
+                            }, true);
                         } else {
                             throw new Error(data.error || 'Failed to send message');
                         }
                     } catch (error) {
                         console.error('Error sending message:', error);
-                        showError(error.message ||
-                            'Network error. Please check your connection and try again.');
+                        // Show error message
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-message';
+                        errorDiv.textContent = error.message || 'Failed to send message';
+                        messageForm.insertAdjacentElement('beforebegin', errorDiv);
+                        setTimeout(() => errorDiv.remove(), 5000);
                     } finally {
                         // Re-enable the input and button
                         messageInput.disabled = false;
                         submitButton.disabled = false;
                         messageInput.focus();
+                        isSubmitting = false; // Reset submitting flag
                     }
                 });
-
-                function showError(message) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    errorDiv.textContent = message;
-                    messageForm.insertAdjacentElement('beforebegin', errorDiv);
-                    setTimeout(() => errorDiv.remove(), 5000);
-                }
             });
         </script>
     @endpush

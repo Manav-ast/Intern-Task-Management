@@ -10,6 +10,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Message;
+use Illuminate\Support\Facades\Log;
 
 class ChatMessageEvent implements ShouldBroadcast
 {
@@ -26,6 +27,7 @@ class ChatMessageEvent implements ShouldBroadcast
      */
     public function __construct(array $messageData)
     {
+        Log::info('ChatMessageEvent constructor called');
         $this->id = $messageData['id'];
         $this->message = $messageData['message'];
         $this->created_at = $messageData['created_at'];
@@ -40,7 +42,9 @@ class ChatMessageEvent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        Log::info('ChatMessageEvent broadcastOn called');
         $channelName = 'chat.' . min($this->sender_id, $this->receiver_id) . '.' . max($this->sender_id, $this->receiver_id);
+        Log::info('Channel name: ' . $channelName);
         return [new PrivateChannel($channelName)];
     }
 
@@ -51,6 +55,7 @@ class ChatMessageEvent implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
+        Log::info('ChatMessageEvent broadcastWith called');
         return [
             'id' => $this->id,
             'message' => $this->message,

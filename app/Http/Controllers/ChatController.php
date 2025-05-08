@@ -107,8 +107,8 @@ class ChatController extends Controller
                 'receiver_id' => $message->receiver_id
             ];
 
-            // Broadcast event only once and only to others
-            broadcast(new ChatMessageEvent($messageData))->toOthers();
+            // Create event instance - Laravel will automatically broadcast it
+            event(new ChatMessageEvent($messageData));
 
             DB::commit();
 

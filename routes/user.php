@@ -34,6 +34,6 @@ Route::prefix('intern')->middleware('auth:intern')->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('index');
         Route::get('/users', [ChatController::class, 'getUsers'])->name('users');
         Route::get('/{id}', [ChatController::class, 'show'])->name('show');
-        Route::post('/{id}', [ChatController::class, 'store'])->name('store');
+        Route::post('/{id}', [ChatController::class, 'store'])->name('stores');
     });
 });

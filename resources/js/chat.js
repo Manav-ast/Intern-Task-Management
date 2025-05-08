@@ -1,6 +1,13 @@
 class Chat {
     constructor() {
         this.$messageForm = $('#message-form');
+
+        // Skip if form is already initialized by inline scripts
+        if (this.$messageForm.attr('data-chat-initialized') === 'true') {
+            console.log('Chat form already initialized, skipping');
+            return;
+        }
+
         this.$messageInput = $('#message-input');
         this.$messagesContainer = $('.chat-messages');
         this.userId = $('meta[name="user-id"]').attr('content');
@@ -11,6 +18,9 @@ class Chat {
         this.initializeEventListeners();
         this.scrollToBottom();
         this.markMessagesAsRead();
+
+        // Mark as initialized to prevent double initialization
+        this.$messageForm.attr('data-chat-initialized', 'true');
     }
 
     initializeEventListeners() {
