@@ -31,6 +31,14 @@ Route::middleware(['auth:admin'])->prefix('admin')->name('admin.chat.')->group(f
     Route::post('/chat/{id}', [ChatController::class, 'store'])->name('store');
 });
 
+// Intern Chat Routes
+Route::middleware(['auth:intern'])->prefix('intern')->name('intern.chat.')->group(function () {
+    Route::get('/chat', [ChatController::class, 'index'])->name('index');
+    Route::get('/chat/users', [ChatController::class, 'getUsers'])->name('users');
+    Route::get('/chat/{id}', [ChatController::class, 'show'])->name('show');
+    Route::post('/chat/{id}', [ChatController::class, 'store'])->name('store');
+});
+
 // Admin Routes
 Route::prefix('admin')->middleware('guest:admin')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');

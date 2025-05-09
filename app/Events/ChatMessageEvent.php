@@ -9,7 +9,6 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Message;
 use Illuminate\Support\Facades\Log;
 
 class ChatMessageEvent implements ShouldBroadcast
@@ -20,19 +19,25 @@ class ChatMessageEvent implements ShouldBroadcast
     public $message;
     public $created_at;
     public $sender_id;
+    public $sender_type;
     public $receiver_id;
+    public $receiver_type;
+    public $is_super_admin;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(array $messageData)
+    public function __construct($data)
     {
-        Log::info('ChatMessageEvent constructor called');
-        $this->id = $messageData['id'];
-        $this->message = $messageData['message'];
-        $this->created_at = $messageData['created_at'];
-        $this->sender_id = $messageData['sender_id'];
-        $this->receiver_id = $messageData['receiver_id'];
+        Log::info('ChatMessageEvent constructor called with data:', $data);
+        $this->id = $data['id'];
+        $this->message = $data['message'];
+        $this->created_at = $data['created_at'];
+        $this->sender_id = $data['sender_id'];
+        $this->sender_type = $data['sender_type'];
+        $this->receiver_id = $data['receiver_id'];
+        $this->receiver_type = $data['receiver_type'];
+        $this->is_super_admin = $data['is_super_admin'] ?? false;
     }
 
     /**
@@ -42,9 +47,8 @@ class ChatMessageEvent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        Log::info('ChatMessageEvent broadcastOn called');
         $channelName = 'chat.' . min($this->sender_id, $this->receiver_id) . '.' . max($this->sender_id, $this->receiver_id);
-        Log::info('Channel name: ' . $channelName);
+        Log::info('Broadcasting on channel:', ['channel' => $channelName]);
         return [new Channel($channelName)];
     }
 
@@ -55,13 +59,17 @@ class ChatMessageEvent implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        Log::info('ChatMessageEvent broadcastWith called');
-        return [
+        $data = [
             'id' => $this->id,
             'message' => $this->message,
-            'sender_id' => $this->sender_id,
-            'receiver_id' => $this->receiver_id,
             'created_at' => $this->created_at,
+            'sender_id' => $this->sender_id,
+            'sender_type' => $this->sender_type,
+            'receiver_id' => $this->receiver_id,
+            'receiver_type' => $this->receiver_type,
+            'is_super_admin' => $this->is_super_admin,
         ];
+        Log::info('Broadcasting data:', $data);
+        return $data;
     }
 }

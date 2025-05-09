@@ -3,6 +3,12 @@
 @section('content')
     <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-id" content="{{ Auth::id() }}">
+    <meta name="user-type" content="{{ get_class(Auth::user()) }}">
+    <meta name="user-name" content="{{ Auth::user()->name }}">
+    <meta name="other-user-id" content="{{ $otherUser->id }}">
+    <meta name="other-user-type" content="{{ get_class($otherUser) }}">
+    <meta name="other-user-role" content="{{ $otherUser->isSuperAdmin() ? 'super-admin' : 'admin' }}">
 
     <div class="py-3 sm:py-6">
         <div class="chat-container">
@@ -15,15 +21,21 @@
                         </svg>
                     </a>
                     <div class="flex items-center ml-3 sm:ml-4">
-                        <div class="avatar inline-flex items-center justify-center" style="background-color: #4f46e5;">
+                        <div class="avatar inline-flex items-center justify-center"
+                            style="background-color: {{ $otherUser->isSuperAdmin() ? '#dc2626' : '#4f46e5' }};">
                             <span class="text-white">{{ substr($otherUser->name, 0, 1) }}</span>
                         </div>
                         <div class="ml-2 sm:ml-3">
-                            <div class="flex items-center">
+                            <div class="flex items-center gap-2">
                                 <h2
                                     class="text-base sm:text-lg font-semibold text-gray-900 truncate max-w-[150px] sm:max-w-none">
-                                    {{ $otherUser->name }}</h2>
-                                <span class="role-badge admin">Admin</span>
+                                    {{ $otherUser->name }}
+                                </h2>
+                                @if ($otherUser->isSuperAdmin())
+                                    <span class="role-badge super-admin">Super Admin</span>
+                                @else
+                                    <span class="role-badge admin">Admin</span>
+                                @endif
                             </div>
                             <p class="text-xs sm:text-sm text-gray-500">Online</p>
                         </div>
@@ -43,6 +55,10 @@
                                 'lastWeek' => '[Last] l',
                                 'sameElse' => 'F j, Y',
                             ]);
+                            $isSender =
+                                $message->sender_id === auth()->id() &&
+                                $message->sender_type === get_class(auth()->user());
+                            $isSuperAdmin = !$isSender && $otherUser->isSuperAdmin();
                         @endphp
 
                         @if ($currentDate !== $messageDate)
@@ -52,7 +68,7 @@
                             @endphp
                         @endif
 
-                        <div class="message {{ $message->sender_id === auth()->id() ? 'sent' : 'received' }}"
+                        <div class="message {{ $isSender ? 'sent' : 'received' }} {{ $isSuperAdmin ? 'super-admin-message' : '' }} animate-fade-in"
                             data-message-id="{{ $message->id }}">
                             <div class="message-content">
                                 <p class="mb-1 break-words">{{ $message->message }}</p>
@@ -65,7 +81,8 @@
                 </div>
 
                 <div class="chat-input">
-                    <form id="message-form" class="flex w-full">
+                    <form id="message-form" action="{{ route('intern.chat.store', ['id' => $otherUser->id]) }}"
+                        class="flex w-full">
                         @csrf
                         <input type="text" id="message-input" name="message" placeholder="Type a message..." required
                             class="focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -83,20 +100,32 @@
 
     @push('scripts')
         <script>
-            // Disable global chat.js by marking this form as already handled
-            document.addEventListener('DOMContentLoaded', function() {
+            $(document).ready(function() {
                 // Mark the form to prevent global chat.js handling
-                document.getElementById('message-form').setAttribute('data-chat-initialized', 'true');
+                $('#message-form').attr('data-chat-initialized', 'true');
 
-                const messagesContainer = document.getElementById('chat-messages');
-                const messageForm = document.getElementById('message-form');
-                const messageInput = document.getElementById('message-input');
-                const userId = {{ Auth::id() }};
-                const otherUserId = {{ $otherUser->id }};
+                const $messagesContainer = $('#chat-messages');
+                const $messageForm = $('#message-form');
+                const $messageInput = $('#message-input');
+                const userId = $('meta[name="user-id"]').attr('content');
+                const userType = $('meta[name="user-type"]').attr('content');
+                const userName = $('meta[name="user-name"]').attr('content');
+                const otherUserId = $('meta[name="other-user-id"]').attr('content');
+                const otherUserType = $('meta[name="other-user-type"]').attr('content');
+                const otherUserRole = $('meta[name="other-user-role"]').attr('content');
+
+                console.log('Chat initialized with:', {
+                    userId,
+                    userType,
+                    userName,
+                    otherUserId,
+                    otherUserType,
+                    otherUserRole
+                });
 
                 // Scroll to bottom of messages
                 function scrollToBottom() {
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    $messagesContainer.scrollTop($messagesContainer[0].scrollHeight);
                 }
                 scrollToBottom();
 
@@ -104,7 +133,8 @@
                 function appendMessage(message, isSender = true) {
                     console.log('Appending message:', {
                         message,
-                        isSender
+                        isSender,
+                        otherUserRole
                     });
 
                     // Check if message already exists
@@ -115,7 +145,9 @@
                     }
 
                     const messageDiv = document.createElement('div');
-                    messageDiv.className = `message ${isSender ? 'sent' : 'received'}`;
+                    const isSuperAdmin = !isSender && otherUserRole === 'super-admin';
+                    messageDiv.className =
+                        `message ${isSender ? 'sent' : 'received'} ${isSuperAdmin ? 'super-admin-message' : ''} animate-fade-in`;
                     messageDiv.setAttribute('data-message-id', message.id);
 
                     const contentDiv = document.createElement('div');
@@ -141,20 +173,22 @@
                     contentDiv.appendChild(timeDiv);
                     messageDiv.appendChild(contentDiv);
 
-                    const messagesContainer = document.getElementById('chat-messages');
-                    messagesContainer.appendChild(messageDiv);
+                    $messagesContainer.append(messageDiv);
                     scrollToBottom();
                 }
 
                 // Listen for new messages
                 const channelName = `chat.${Math.min(userId, otherUserId)}.${Math.max(userId, otherUserId)}`;
+                console.log('Listening on channel:', channelName);
 
                 window.Echo.channel(channelName)
                     .listen('ChatMessageEvent', (e) => {
                         console.log('Received WebSocket message:', e);
 
-                        // Only handle messages from the other user
-                        if (e.sender_id === userId) {
+                        const isSender = e.sender_id === userId && e.sender_type === userType;
+
+                        // Skip if this is our own message (we'll handle it in the send response)
+                        if (isSender) {
                             console.log('Ignoring own message from WebSocket:', e.id);
                             return;
                         }
@@ -163,35 +197,43 @@
                             id: e.id,
                             message: e.message,
                             created_at: e.created_at,
-                            sender_id: e.sender_id
+                            sender_id: e.sender_id,
+                            sender_type: e.sender_type,
+                            receiver_id: e.receiver_id,
+                            receiver_type: e.receiver_type,
+                            is_super_admin: e.is_super_admin
                         }, false);
                     });
 
                 // Handle message submission
-                let isSubmitting = false; // Flag to prevent duplicate submissions
-                messageForm.addEventListener('submit', async function(e) {
+                let isSubmitting = false;
+
+                $messageForm.on('submit', async function(e) {
                     e.preventDefault();
 
-                    // If already submitting, prevent duplicate
                     if (isSubmitting) {
-                        console.log('Message already being sent, preventing duplicate');
+                        console.log('Already submitting a message, please wait...');
                         return;
                     }
 
-                    const message = messageInput.value.trim();
+                    const message = $messageInput.val().trim();
                     if (!message) return;
 
-                    // Set submitting flag to true
                     isSubmitting = true;
-
-                    // Disable the input and button while sending
-                    messageInput.disabled = true;
-                    const submitButton = messageForm.querySelector('button[type="submit"]');
-                    submitButton.disabled = true;
+                    const $submitButton = $(this).find('button[type="submit"]');
+                    $submitButton.prop('disabled', true);
+                    $messageInput.prop('disabled', true);
 
                     try {
-                        console.log('Sending message:', message);
-                        const response = await fetch('/intern/chat/{{ $otherUser->id }}', {
+                        console.log('Sending message:', {
+                            message,
+                            userId,
+                            userType,
+                            otherUserId,
+                            otherUserType
+                        });
+
+                        const response = await fetch($messageForm.attr('action'), {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -209,42 +251,83 @@
 
                         if (response.ok) {
                             // Clear input first
-                            messageInput.value = '';
+                            $messageInput.val('');
 
                             appendMessage({
                                 id: data.id,
                                 message: data.message,
                                 created_at: data.created_at,
-                                sender_id: userId
+                                sender_id: userId,
+                                sender_type: userType,
+                                receiver_id: otherUserId,
+                                receiver_type: otherUserType,
+                                is_super_admin: false
                             }, true);
                         } else {
                             throw new Error(data.error || 'Failed to send message');
                         }
                     } catch (error) {
                         console.error('Error sending message:', error);
-                        showError(error.message ||
-                            'Network error. Please check your connection and try again.');
+                        alert('Failed to send message. Please try again.');
                     } finally {
-                        // Re-enable the input and button
-                        messageInput.disabled = false;
-                        submitButton.disabled = false;
-                        messageInput.focus();
-                        isSubmitting = false; // Reset submitting flag
+                        $messageInput.prop('disabled', false);
+                        $submitButton.prop('disabled', false);
+                        $messageInput.focus();
+                        isSubmitting = false;
                     }
                 });
-
-                function showError(message) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    errorDiv.textContent = message;
-                    messageForm.insertAdjacentElement('beforebegin', errorDiv);
-                    setTimeout(() => errorDiv.remove(), 5000);
-                }
             });
         </script>
     @endpush
 
     <style>
+        .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .role-badge.super-admin {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .role-badge.admin {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .message.received.super-admin-message .message-content {
+            background-color: #fee2e2;
+            border: 1px solid #dc2626;
+        }
+
+        .avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            transition: all 0.3s ease;
+        }
+
+        .avatar.super-admin {
+            background-color: #dc2626;
+        }
+
+        .message.received.super-admin-message {
+            position: relative;
+        }
+
+        .message.received.super-admin-message::before {
+            content: 'Super Admin';
+            position: absolute;
+            top: -1.25rem;
+            left: 0;
+            font-size: 0.75rem;
+            color: #dc2626;
+            font-weight: 500;
+        }
+
         @keyframes fade-in {
             from {
                 opacity: 0;

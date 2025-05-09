@@ -11,9 +11,17 @@ class Chat {
         this.$messageInput = $('#message-input');
         this.$messagesContainer = $('.chat-messages');
         this.userId = $('meta[name="user-id"]').attr('content');
+        this.userRole = $('meta[name="user-role"]').attr('content');
         this.userType = $('meta[name="user-type"]').attr('content');
         this.otherUserId = $('meta[name="other-user-id"]').attr('content');
         this.isScrolledToBottom = true;
+
+        console.log('Chat initialized with:', {
+            userId: this.userId,
+            userRole: this.userRole,
+            userType: this.userType,
+            otherUserId: this.otherUserId
+        });
 
         this.initializeEventListeners();
         this.scrollToBottom();

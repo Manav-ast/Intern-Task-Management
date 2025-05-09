@@ -91,7 +91,8 @@ class ChatController extends Controller
             // Begin transaction to ensure atomicity
             DB::beginTransaction();
 
-            $message = Message::create([
+            // Create the message
+            $message = new Message([
                 'message' => $request->message,
                 'sender_id' => $user->id,
                 'sender_type' => get_class($user),
@@ -99,13 +100,22 @@ class ChatController extends Controller
                 'receiver_type' => get_class($otherUser),
             ]);
 
+            // Save the message
+            $message->save();
+
+            // Prepare message data for response and broadcasting
             $messageData = [
                 'id' => $message->id,
                 'message' => $message->message,
                 'created_at' => $message->created_at,
                 'sender_id' => $message->sender_id,
-                'receiver_id' => $message->receiver_id
+                'sender_type' => $message->sender_type,
+                'receiver_id' => $message->receiver_id,
+                'receiver_type' => $message->receiver_type,
+                'is_super_admin' => $user instanceof Admin && $user->isSuperAdmin()
             ];
+
+            Log::info('Broadcasting message:', $messageData);
 
             // Create event instance - Laravel will automatically broadcast it
             event(new ChatMessageEvent($messageData));
@@ -119,6 +129,7 @@ class ChatController extends Controller
             return redirect()->back()->with('success', 'Message sent successfully.');
         } catch (ValidationException $e) {
             DB::rollBack();
+            Log::error('Validation error:', $e->errors());
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'error' => $e->errors()['message'][0] ?? 'Invalid message'
@@ -127,7 +138,7 @@ class ChatController extends Controller
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error sending message: ' . $e->getMessage());
+            Log::error('Error sending message:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'error' => 'Server error occurred while sending message'

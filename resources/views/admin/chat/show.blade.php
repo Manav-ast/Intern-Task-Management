@@ -3,6 +3,12 @@
 @section('content')
     <link rel="stylesheet" href="{{ asset('css/chat.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-id" content="{{ Auth::id() }}">
+    <meta name="user-type" content="{{ get_class(Auth::user()) }}">
+    <meta name="user-role" content="{{ Auth::user()->isSuperAdmin() ? 'super-admin' : 'admin' }}">
+    <meta name="user-name" content="{{ Auth::user()->name }}">
+    <meta name="other-user-id" content="{{ $otherUser->id }}">
+    <meta name="other-user-type" content="{{ get_class($otherUser) }}">
 
     <div class="py-3 sm:py-6">
         <div class="chat-container">
@@ -43,6 +49,9 @@
                                 'lastWeek' => '[Last] l',
                                 'sameElse' => 'F j, Y',
                             ]);
+                            $isSender =
+                                $message->sender_id === auth()->id() &&
+                                $message->sender_type === get_class(auth()->user());
                         @endphp
 
                         @if ($currentDate !== $messageDate)
@@ -52,7 +61,7 @@
                             @endphp
                         @endif
 
-                        <div class="message {{ $message->sender_id === auth()->id() ? 'sent' : 'received' }}"
+                        <div class="message {{ $isSender ? 'sent' : 'received' }} animate-fade-in"
                             data-message-id="{{ $message->id }}">
                             <div class="message-content">
                                 <p class="mb-1 break-words">{{ $message->message }}</p>
@@ -65,7 +74,7 @@
                 </div>
 
                 <div class="chat-input">
-                    <form id="message-form" class="flex w-full">
+                    <form id="message-form" action="/admin/chat/{{ $otherUser->id }}" class="flex w-full">
                         @csrf
                         <input type="text" id="message-input" name="message" placeholder="Type a message..." required
                             class="focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -90,8 +99,21 @@
                 const $messagesContainer = $('#chat-messages');
                 const $messageForm = $('#message-form');
                 const $messageInput = $('#message-input');
-                const userId = {{ Auth::id() }};
-                const otherUserId = {{ $otherUser->id }};
+                const userId = $('meta[name="user-id"]').attr('content');
+                const userType = $('meta[name="user-type"]').attr('content');
+                const userRole = $('meta[name="user-role"]').attr('content');
+                const userName = $('meta[name="user-name"]').attr('content');
+                const otherUserId = $('meta[name="other-user-id"]').attr('content');
+                const otherUserType = $('meta[name="other-user-type"]').attr('content');
+
+                console.log('Chat initialized with:', {
+                    userId,
+                    userType,
+                    userRole,
+                    userName,
+                    otherUserId,
+                    otherUserType
+                });
 
                 // Scroll to bottom of messages
                 function scrollToBottom() {
@@ -101,90 +123,123 @@
 
                 // Add new message to the chat
                 function appendMessage(message, isSender = true) {
-                    const messageHtml = `
-                        <div class="message ${isSender ? 'sent' : 'received'}" data-message-id="${message.id}">
-                            <div class="message-content">
-                                <p class="mb-1 break-words">${$('<div>').text(message.message).html()}</p>
-                                <div class="message-time">
-                                    <span>${new Date(message.created_at).toLocaleTimeString('en-US', {
-                                        hour: 'numeric',
-                                        minute: 'numeric',
-                                        hour12: true
-                                    })}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                    console.log('Appending message:', {
+                        message,
+                        isSender,
+                        userRole
+                    });
 
-                    $messagesContainer.append(messageHtml);
+                    // Check if message already exists
+                    const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
+                    if (existingMessage) {
+                        console.log('Message already exists, skipping append:', message.id);
+                        return;
+                    }
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${isSender ? 'sent' : 'received'} animate-fade-in`;
+                    messageDiv.setAttribute('data-message-id', message.id);
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+
+                    const messageText = document.createElement('p');
+                    messageText.className = 'mb-1 break-words';
+                    messageText.textContent = message.message;
+
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'message-time';
+
+                    const timeSpan = document.createElement('span');
+                    const messageDate = new Date(message.created_at);
+                    timeSpan.textContent = messageDate.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                    });
+
+                    timeDiv.appendChild(timeSpan);
+                    contentDiv.appendChild(messageText);
+                    contentDiv.appendChild(timeDiv);
+                    messageDiv.appendChild(contentDiv);
+
+                    $messagesContainer.append(messageDiv);
                     scrollToBottom();
                 }
 
                 // Listen for new messages
                 const channelName = `chat.${Math.min(userId, otherUserId)}.${Math.max(userId, otherUserId)}`;
-
-                // Message queue to handle concurrent messages
-                const messageQueue = new Set();
-                const processedMessages = new Set();
+                console.log('Listening on channel:', channelName);
 
                 window.Echo.channel(channelName)
                     .listen('ChatMessageEvent', (e) => {
-                        // Only handle messages from the other user
-                        if (e.sender_id === userId) {
+                        console.log('Received WebSocket message:', e);
+
+                        const isSender = e.sender_id === userId && e.sender_type === userType;
+
+                        // Skip if this is our own message (we'll handle it in the send response)
+                        if (isSender) {
                             console.log('Ignoring own message from WebSocket:', e.id);
                             return;
                         }
 
-                        // Check if message already exists in the DOM
-                        if ($(`[data-message-id="${e.id}"]`).length > 0) {
-                            console.log('Message already displayed, skipping:', e.id);
-                            return;
-                        }
-
-                        // Add message with small delay to prevent race conditions
-                        setTimeout(() => {
-                            appendMessage({
-                                id: e.id,
-                                message: e.message,
-                                created_at: e.created_at,
-                                sender_id: e.sender_id
-                            }, false);
-                        }, 50);
+                        appendMessage({
+                            id: e.id,
+                            message: e.message,
+                            created_at: e.created_at,
+                            sender_id: e.sender_id,
+                            sender_type: e.sender_type,
+                            receiver_id: e.receiver_id,
+                            receiver_type: e.receiver_type,
+                            is_super_admin: e.is_super_admin
+                        }, false);
                     });
 
                 // Handle message submission
-                let isSubmitting = false; // Flag to prevent duplicate submissions
-                $messageForm.on('submit', function(e) {
+                let isSubmitting = false;
+
+                $messageForm.on('submit', async function(e) {
                     e.preventDefault();
 
-                    // If already submitting, prevent duplicate
                     if (isSubmitting) {
-                        console.log('Message already being sent, preventing duplicate');
+                        console.log('Already submitting a message, please wait...');
                         return;
                     }
 
                     const message = $messageInput.val().trim();
                     if (!message) return;
 
-                    // Set submitting flag to true
                     isSubmitting = true;
-
-                    // Disable the input and button while sending
-                    $messageInput.prop('disabled', true);
-                    const $submitButton = $messageForm.find('button[type="submit"]');
+                    const $submitButton = $(this).find('button[type="submit"]');
                     $submitButton.prop('disabled', true);
+                    $messageInput.prop('disabled', true);
 
-                    $.ajax({
-                        url: '/admin/chat/{{ $otherUser->id }}',
-                        method: 'POST',
-                        data: {
-                            message: message,
-                            _token: $('meta[name="csrf-token"]').attr('content')
-                        },
-                        dataType: 'json',
-                        success: function(data) {
-                            console.log('Server response:', data);
+                    try {
+                        console.log('Sending message:', {
+                            message,
+                            userId,
+                            userType,
+                            otherUserId,
+                            otherUserType
+                        });
 
+                        const response = await fetch($messageForm.attr('action'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                                    .content,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                message: message
+                            })
+                        });
+
+                        const data = await response.json();
+                        console.log('Server response:', data);
+
+                        if (response.ok) {
                             // Clear input first
                             $messageInput.val('');
 
@@ -192,32 +247,24 @@
                                 id: data.id,
                                 message: data.message,
                                 created_at: data.created_at,
-                                sender_id: userId
+                                sender_id: userId,
+                                sender_type: userType,
+                                receiver_id: otherUserId,
+                                receiver_type: otherUserType,
+                                is_super_admin: userRole === 'super-admin'
                             }, true);
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('Error sending message:', error);
-                            // Show error message
-                            const errorHtml = `
-                                <div class="error-message" role="alert">
-                                    <p class="font-medium">${xhr.responseJSON?.error || 'Failed to send message'}</p>
-                                </div>
-                            `;
-                            const $error = $(errorHtml).hide();
-                            $messageForm.before($error);
-                            $error.fadeIn('slow');
-                            setTimeout(() => $error.fadeOut('slow', function() {
-                                $(this).remove();
-                            }), 5000);
-                        },
-                        complete: function() {
-                            // Re-enable the input and button
-                            $messageInput.prop('disabled', false);
-                            $submitButton.prop('disabled', false);
-                            $messageInput.focus();
-                            isSubmitting = false; // Reset submitting flag
+                        } else {
+                            throw new Error(data.error || 'Failed to send message');
                         }
-                    });
+                    } catch (error) {
+                        console.error('Error sending message:', error);
+                        alert('Failed to send message. Please try again.');
+                    } finally {
+                        $messageInput.prop('disabled', false);
+                        $submitButton.prop('disabled', false);
+                        $messageInput.focus();
+                        isSubmitting = false;
+                    }
                 });
             });
         </script>
