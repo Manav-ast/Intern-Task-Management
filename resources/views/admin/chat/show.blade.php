@@ -127,7 +127,7 @@
                 const messageQueue = new Set();
                 const processedMessages = new Set();
 
-                window.Echo.private(channelName)
+                window.Echo.channel(channelName)
                     .listen('ChatMessageEvent', (e) => {
                         // Only handle messages from the other user
                         if (e.sender_id === userId) {

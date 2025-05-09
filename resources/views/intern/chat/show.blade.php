@@ -149,7 +149,7 @@
                 // Listen for new messages
                 const channelName = `chat.${Math.min(userId, otherUserId)}.${Math.max(userId, otherUserId)}`;
 
-                window.Echo.private(channelName)
+                window.Echo.channel(channelName)
                     .listen('ChatMessageEvent', (e) => {
                         console.log('Received WebSocket message:', e);
 

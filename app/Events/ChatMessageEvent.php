@@ -45,7 +45,7 @@ class ChatMessageEvent implements ShouldBroadcast
         Log::info('ChatMessageEvent broadcastOn called');
         $channelName = 'chat.' . min($this->sender_id, $this->receiver_id) . '.' . max($this->sender_id, $this->receiver_id);
         Log::info('Channel name: ' . $channelName);
-        return [new PrivateChannel($channelName)];
+        return [new Channel($channelName)];
     }
 
     /**

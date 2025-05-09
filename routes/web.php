@@ -78,7 +78,7 @@ Route::post('/messages/mark-as-read', function (Request $request) {
         ->update(['read_at' => now()]);
 
     return response()->json(['status' => 'success']);
-})->middleware('auth');
+})->middleware('auth:admin,intern');
 
 // Get unread message count
 Route::get('/messages/unread-count', function (Request $request) {
@@ -89,7 +89,7 @@ Route::get('/messages/unread-count', function (Request $request) {
         ->count();
 
     return response()->json(['unread_count' => $unreadCount]);
-})->middleware('auth');
+})->middleware('auth:admin,intern');
 
 // Mark messages from a specific sender as read
 Route::post('/messages/mark-as-read/{userId}', function (Request $request, $userId) {
@@ -104,4 +104,4 @@ Route::post('/messages/mark-as-read/{userId}', function (Request $request, $user
         ->update(['read_at' => now()]);
 
     return response()->json(['status' => 'success']);
-})->middleware('auth');
+})->middleware('auth:admin,intern');

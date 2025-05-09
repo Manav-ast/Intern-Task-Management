@@ -74,11 +74,22 @@ class AdminController extends Controller
     {
         try {
             $this->authorize('edit-admins');
+
+            // Prevent editing super admin
+            if ($admin->isSuperAdmin()) {
+                return back()->with('swal-error', 'Super admin cannot be edited.');
+            }
+
+            // Prevent admin from editing themselves
+            if ($admin->id === auth('admin')->id()) {
+                return back()->with('swal-error', 'You cannot edit your own account.');
+            }
+
             $roles = Role::all();
             return view('admin.admins.edit', compact('admin', 'roles'));
         } catch (\Exception $e) {
             Log::error('Error loading edit admin form: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error loading edit form. Please try again.');
+            return back()->with('swal-error', 'Error loading edit form. Please try again.');
         }
     }
 
@@ -87,6 +98,16 @@ class AdminController extends Controller
         try {
             $this->authorize('edit-admins');
 
+            // Prevent editing super admin
+            if ($admin->isSuperAdmin()) {
+                return back()->with('swal-error', 'Super admin cannot be edited.');
+            }
+
+            // Prevent admin from editing themselves
+            if ($admin->id === auth('admin')->id()) {
+                return back()->with('swal-error', 'You cannot edit your own account.');
+            }
+
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email,' . $admin->id],
@@ -94,6 +115,13 @@ class AdminController extends Controller
                 'roles' => ['required', 'array'],
                 'roles.*' => ['exists:roles,id'],
             ]);
+
+            // Check if trying to assign super-admin role
+            if (in_array(Role::where('slug', 'super-admin')->first()->id, $validated['roles'])) {
+                return back()
+                    ->with('swal-error', 'Cannot assign super admin role to other users.')
+                    ->withInput();
+            }
 
             $admin->update([
                 'name' => $validated['name'],
@@ -107,11 +135,11 @@ class AdminController extends Controller
             $admin->roles()->sync($validated['roles']);
 
             return redirect()->route('admin.admins.index')
-                ->with('success', 'Admin updated successfully.');
+                ->with('swal-success', 'Admin updated successfully.');
         } catch (\Exception $e) {
             Log::error('Error updating admin: ' . $e->getMessage());
-            return redirect()->back()
-                ->with('error', 'Error updating admin. Please try again.')
+            return back()
+                ->with('swal-error', 'Error updating admin. Please try again.')
                 ->withInput();
         }
     }
@@ -121,16 +149,39 @@ class AdminController extends Controller
         try {
             $this->authorize('delete-admins');
 
+            // Prevent deleting super admin
             if ($admin->isSuperAdmin()) {
                 return response()->json([
-                    'error' => 'Cannot delete super admin.'
+                    'error' => 'Super admin cannot be deleted.',
+                    'type' => 'error',
+                    'title' => 'Access Denied'
+                ], 422);
+            }
+
+            // Prevent admin from deleting themselves
+            if ($admin->id === auth('admin')->id()) {
+                return response()->json([
+                    'error' => 'You cannot delete your own account.',
+                    'type' => 'error',
+                    'title' => 'Action Not Allowed'
+                ], 422);
+            }
+
+            // Only super admin can delete other admins
+            if ($admin->hasRole('admin') && !auth('admin')->user()->isSuperAdmin()) {
+                return response()->json([
+                    'error' => 'Only super admin can delete other admins.',
+                    'type' => 'error',
+                    'title' => 'Access Denied'
                 ], 422);
             }
 
             // Check for related data
             if ($admin->tasks()->count() > 0) {
                 return response()->json([
-                    'error' => 'Cannot delete admin with assigned tasks. Please reassign or delete the tasks first.'
+                    'error' => 'Cannot delete admin with assigned tasks. Please reassign or delete the tasks first.',
+                    'type' => 'error',
+                    'title' => 'Action Not Allowed'
                 ], 422);
             }
 
@@ -144,22 +195,28 @@ class AdminController extends Controller
             $admin->delete();
 
             if (request()->wantsJson()) {
-                return response()->json(['message' => 'Admin deleted successfully']);
+                return response()->json([
+                    'message' => 'Admin deleted successfully',
+                    'type' => 'success',
+                    'title' => 'Success'
+                ]);
             }
 
             return redirect()->route('admin.admins.index')
-                ->with('success', 'Admin deleted successfully.');
+                ->with('swal-success', 'Admin deleted successfully.');
         } catch (\Exception $e) {
             Log::error('Error deleting admin: ' . $e->getMessage());
 
             if (request()->wantsJson()) {
                 return response()->json([
-                    'error' => 'Failed to delete admin. Please try again.'
+                    'error' => 'Failed to delete admin. Please try again.',
+                    'type' => 'error',
+                    'title' => 'Error'
                 ], 500);
             }
 
             return redirect()->route('admin.admins.index')
-                ->with('error', 'Failed to delete admin.');
+                ->with('swal-error', 'Failed to delete admin.');
         }
     }
 }

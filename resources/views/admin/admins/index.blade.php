@@ -35,16 +35,24 @@
                                 @endforeach
                             </td>
                             <td class="px-6 py-4 space-x-2">
-                                @can('edit-admins')
-                                    <a href="{{ route('admin.admins.edit', $admin) }}"
-                                        class="text-gray-600 font-medium hover:underline">Edit</a>
-                                @endcan
-                                @can('delete-admins')
-                                    <button type="button" class="text-red-600 font-medium hover:underline"
-                                        onclick="deleteAdmin({{ $admin->id }}, '{{ $admin->name }}')">
-                                        Delete
-                                    </button>
-                                @endcan
+                                @if (!$admin->isSuperAdmin())
+                                    @can('edit-admins')
+                                        @if ($admin->id !== Auth::guard('admin')->id())
+                                            <a href="{{ route('admin.admins.edit', $admin) }}"
+                                                class="text-gray-600 font-medium hover:underline">Edit</a>
+                                        @endif
+                                    @endcan
+                                    @if (!$admin->hasRole('admin') || Auth::guard('admin')->user()->isSuperAdmin())
+                                        @can('delete-admins')
+                                            @if ($admin->id !== Auth::guard('admin')->id())
+                                                <button type="button" class="text-red-600 font-medium hover:underline"
+                                                    onclick="deleteAdmin({{ $admin->id }}, '{{ $admin->name }}')">
+                                                    Delete
+                                                </button>
+                                            @endif
+                                        @endcan
+                                    @endif
+                                @endif
                             </td>
                         </tr>
                     @endforeach
@@ -57,10 +65,10 @@
         <script>
             $(document).ready(function() {
                 // Show success message if exists
-                @if (session('success'))
+                @if (session('swal-success'))
                     Swal.fire({
                         title: 'Success!',
-                        text: '{{ session('success') }}',
+                        text: '{{ session('swal-success') }}',
                         icon: 'success',
                         timer: 2000,
                         showConfirmButton: false
@@ -68,10 +76,10 @@
                 @endif
 
                 // Show error message if exists
-                @if (session('error'))
+                @if (session('swal-error'))
                     Swal.fire({
                         title: 'Error!',
-                        text: '{{ session('error') }}',
+                        text: '{{ session('swal-error') }}',
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
@@ -106,9 +114,9 @@
 
                                 // Show success message
                                 Swal.fire({
-                                    title: 'Success!',
+                                    title: response.title || 'Success!',
                                     text: response.message || 'Admin deleted successfully',
-                                    icon: 'success',
+                                    icon: response.type || 'success',
                                     timer: 2000,
                                     showConfirmButton: false
                                 }).then(() => {
@@ -121,13 +129,19 @@
                             error: function(xhr) {
                                 // Show error message
                                 let errorMessage = 'Error deleting admin. Please try again.';
-                                if (xhr.responseJSON && xhr.responseJSON.error) {
-                                    errorMessage = xhr.responseJSON.error;
+                                let errorTitle = 'Error!';
+                                let errorType = 'error';
+
+                                if (xhr.responseJSON) {
+                                    errorMessage = xhr.responseJSON.error || errorMessage;
+                                    errorTitle = xhr.responseJSON.title || errorTitle;
+                                    errorType = xhr.responseJSON.type || errorType;
                                 }
+
                                 Swal.fire({
-                                    title: 'Error!',
+                                    title: errorTitle,
                                     text: errorMessage,
-                                    icon: 'error',
+                                    icon: errorType,
                                     confirmButtonText: 'OK'
                                 });
                             }
