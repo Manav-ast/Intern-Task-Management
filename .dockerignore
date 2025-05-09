@@ -1,6 +1,8 @@
 .git
 .gitignore
-.env
+.gitattributes
+.env*
+!.env.example
 node_modules
 vendor
 storage/*.key
@@ -11,6 +13,13 @@ storage/logs/*
 *.log
 .dockerignore
 Dockerfile
-docker-compose.yml
+docker-compose*
 README.md
+phpunit.xml
+.editorconfig
+.styleci.yml
 tests
+.vscode
+.idea
+*.md
+.DS_Store
