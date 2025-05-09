@@ -15,14 +15,35 @@ use App\Models\Message;
 
 require __DIR__ . '/user.php';
 
-Route::get('/', function () {
-    if (Auth::guard('admin')->check()) {
-        return redirect()->route('admin.dashboard');
-    } elseif (Auth::guard('intern')->check()) {
-        return redirect()->route('intern.dashboard');
+// Helper function for auth redirection
+function handleAuthRedirect($specificGuard = null)
+{
+    $guards = $specificGuard ? [$specificGuard] : ['admin', 'intern'];
+
+    foreach ($guards as $guard) {
+        if (Auth::guard($guard)->check()) {
+            return redirect()->route($guard . '.dashboard');
+        }
     }
-    return redirect()->route('intern.login');
+
+    return redirect()->route($specificGuard ? $specificGuard . '.login' : 'intern.login');
+}
+
+// Base admin route redirect
+Route::get('/admin', function () {
+    return handleAuthRedirect('admin');
+});
+
+// Base intern route redirect
+Route::get('/intern', function () {
+    return handleAuthRedirect('intern');
+});
+
+// Home route redirect
+Route::get('/', function () {
+    return handleAuthRedirect();
 })->name('home');
+
 // Chat Routes
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.chat.')->group(function () {
     Route::get('/chat', [ChatController::class, 'index'])->name('index');
