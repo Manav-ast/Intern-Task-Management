@@ -152,7 +152,7 @@
 
                     const timeSpan = document.createElement('span');
                     const messageDate = new Date(message.created_at);
-                    timeSpan.textContent = messageDate.toLocaleTimeString('en-US', {
+                    timeSpan.textContent = messageDate.toLocaleTimeString('en-IN', {
                         hour: 'numeric',
                         minute: 'numeric',
                         hour12: true

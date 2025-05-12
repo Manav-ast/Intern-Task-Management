@@ -47,6 +47,7 @@ class ChatMessageEvent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        Log::info('broadcastOn method called');
         $channelName = 'chat.' . min($this->sender_id, $this->receiver_id) . '.' . max($this->sender_id, $this->receiver_id);
         Log::info('Broadcasting on channel:', ['channel' => $channelName]);
         return [new Channel($channelName)];

@@ -61,19 +61,12 @@ class Authenticate
             return null;
         }
 
+        // Check if the request path starts with admin
         if ($request->is('admin/*')) {
             return route('admin.login');
         }
 
-        if ($request->is('intern/*')) {
-            return route('intern.login');
-        }
-
-        return route('user.login'); // fallback for any other users if needed
-    }
-
-    public static function redirectUsing(callable $redirectToCallback)
-    {
-        static::$redirectToCallback = $redirectToCallback;
+        // Default to intern login for all other unauthenticated requests
+        return route('intern.login');
     }
 }

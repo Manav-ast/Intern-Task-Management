@@ -28,11 +28,17 @@ class TaskController extends Controller
         try {
             // Check if the intern is assigned to this task
             if (!$task->interns->contains(auth('intern')->id())) {
+                if (request()->wantsJson()) {
+                    return response()->json(['message' => 'You are not authorized to view this task.'], 403);
+                }
                 abort(403, 'You are not authorized to view this task.');
             }
 
             return view('intern.tasks.show', compact('task'));
         } catch (\Exception $e) {
+            if (request()->wantsJson()) {
+                return response()->json(['message' => 'Error viewing task: ' . $e->getMessage()], 500);
+            }
             return redirect()->back()->with('error', 'Error viewing task: ' . $e->getMessage());
         }
     }
@@ -47,13 +53,17 @@ class TaskController extends Controller
                 ], 403);
             }
 
-            // Validate the request
-            $validated = $request->validate([
-                'message' => 'required|string|max:1000'
-            ], [
-                'message.required' => 'Please enter a comment message.',
-                'message.max' => 'Comment message cannot be longer than 1000 characters.'
-            ]);
+            try {
+                // Validate the request
+                $validated = $request->validate([
+                    'message' => 'required|string|max:1000'
+                ], [
+                    'message.required' => 'Please enter a comment message.',
+                    'message.max' => 'Comment message cannot be longer than 1000 characters.'
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json(['errors' => $e->errors()], 422);
+            }
 
             $intern = auth('intern')->user();
 
