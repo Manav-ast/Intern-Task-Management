@@ -6,6 +6,15 @@
     <title>Intern Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @vite('resources/css/app.css') {{-- Tailwind via Vite --}}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <style>
+        .error {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
@@ -19,13 +28,13 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('intern.login') }}" class="space-y-6">
+        <form id="loginForm" method="POST" action="{{ route('intern.login') }}" class="space-y-6">
             @csrf
 
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
                 <input type="email" id="email" name="email" required
-                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none" value="intern@test.com" />
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 focus:outline-none" value="intern@test.com"/>
             </div>
 
             <div>
@@ -40,6 +49,13 @@
                     Sign In
                 </button>
             </div>
+
+            <div class="text-center mt-4 text-sm text-gray-600">
+                Don't have an account?
+                <a href="{{ route('intern.register') }}" class="text-indigo-600 hover:text-indigo-900">
+                    Register here
+                </a>
+            </div>
         </form>
 
         <div class="mt-6 text-center text-sm text-gray-600">
@@ -47,6 +63,43 @@
         </div>
     </div>
 
+    <script>
+        $(document).ready(function() {
+            $("#loginForm").validate({
+                rules: {
+                    email: {
+                        required: true,
+                        email: true
+                    },
+                    password: {
+                        required: true,
+                        minlength: 6
+                    }
+                },
+                messages: {
+                    email: {
+                        required: "Please enter your email",
+                        email: "Please enter a valid email address"
+                    },
+                    password: {
+                        required: "Please enter your password",
+                        minlength: "Password must be at least 6 characters long"
+                    }
+                },
+                errorElement: 'span',
+                errorPlacement: function(error, element) {
+                    error.addClass('error');
+                    error.insertAfter(element);
+                },
+                highlight: function(element) {
+                    $(element).addClass('border-red-500').removeClass('border-gray-300');
+                },
+                unhighlight: function(element) {
+                    $(element).removeClass('border-red-500').addClass('border-gray-300');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

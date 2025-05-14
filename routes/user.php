@@ -2,11 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Intern\InternAuthController;
-use App\Http\Controllers\Intern\InternTaskController;
 use App\Http\Controllers\Intern\TaskController;
-use App\Http\Controllers\Intern\InternChatController;
 use App\Http\Controllers\Intern\ProfileController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Intern\InternDashboardController;
 
 // Intern Routes
 Route::prefix('intern')->middleware('guest:intern')->group(function () {
@@ -14,6 +13,13 @@ Route::prefix('intern')->middleware('guest:intern')->group(function () {
     Route::post('/login', [InternAuthController::class, 'login']);
     Route::get('/register', [InternAuthController::class, 'showRegisterForm'])->name('intern.register');
     Route::post('/register', [InternAuthController::class, 'register']);
+});
+
+// Intern Dashboard Routes
+Route::middleware(['auth:intern'])->prefix('intern')->name('intern.')->group(function () {
+    Route::get('/dashboard', [InternDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/stats', [InternDashboardController::class, 'getTaskStats'])->name('dashboard.stats');
+    Route::get('/dashboard/refresh', [InternDashboardController::class, 'refreshDashboard'])->name('dashboard.refresh');
 });
 
 Route::prefix('intern')->middleware('auth:intern')->group(function () {

@@ -42,4 +42,24 @@ class Message extends Model
     {
         return !is_null($this->read_at);
     }
+
+    protected static function booted()
+    {
+        static::addGlobalScope('morphToWith', function ($query) {
+            $query->with([
+                'sender' => function ($morphTo) {
+                    $morphTo->morphWith([
+                        \App\Models\Admin::class => [],
+                        \App\Models\Intern::class => [],
+                    ]);
+                },
+                'receiver' => function ($morphTo) {
+                    $morphTo->morphWith([
+                        \App\Models\Admin::class => [],
+                        \App\Models\Intern::class => [],
+                    ]);
+                }
+            ]);
+        });
+    }
 }

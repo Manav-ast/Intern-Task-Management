@@ -13,7 +13,8 @@ class TaskController extends Controller
     {
         try {
             $tasks = auth('intern')->user()->tasks()
-                ->with(['admin', 'comments'])
+                ->withCount('comments')
+                ->with(['admin:id,name', 'comments:id,task_id'])
                 ->latest()
                 ->paginate(10);
 

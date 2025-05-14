@@ -25,7 +25,6 @@ class ChatController extends Controller
                 $query->where('receiver_id', $user->id)
                     ->where('receiver_type', get_class($user));
             })
-                ->with(['sender', 'receiver'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
@@ -42,8 +41,12 @@ class ChatController extends Controller
         try {
             $user = Auth::user();
             $otherUser = $user instanceof Admin
-                ? Intern::findOrFail($id)
-                : Admin::findOrFail($id);
+                ? Intern::find($id)
+                : Admin::find($id);
+
+            if (!$otherUser) {
+                return redirect()->back()->with('error', 'User not found.');
+            }
 
             $messages = Message::where(function ($query) use ($user, $otherUser) {
                 $query->where('sender_id', $user->id)
