@@ -25,7 +25,7 @@
                                 <input type="email" name="email" id="email"
                                     value="{{ old('email', $admin->email) }}"
                                     class="p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
-                                    disabled>
+                                    >
                                 @error('email')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror

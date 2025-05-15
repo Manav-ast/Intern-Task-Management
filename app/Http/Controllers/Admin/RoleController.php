@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RoleRequest;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\Request;
@@ -37,18 +38,12 @@ class RoleController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(RoleRequest $request)
     {
         try {
             $this->authorize('create-roles');
 
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255', 'unique:roles'],
-                'slug' => ['required', 'string', 'max:255', 'unique:roles'],
-                'description' => ['nullable', 'string'],
-                'permissions' => ['required', 'array'],
-                'permissions.*' => ['exists:permissions,id'],
-            ]);
+            $validated = $request->validated();
 
             $role = Role::create([
                 'name' => $validated['name'],
@@ -85,7 +80,7 @@ class RoleController extends Controller
         }
     }
 
-    public function update(Request $request, Role $role)
+    public function update(RoleRequest $request, Role $role)
     {
         try {
             $this->authorize('edit-roles');
@@ -94,13 +89,7 @@ class RoleController extends Controller
                 return back()->with('error', 'Cannot edit super admin role.');
             }
 
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255', 'unique:roles,name,' . $role->id],
-                'slug' => ['required', 'string', 'max:255', 'unique:roles,slug,' . $role->id],
-                'description' => ['nullable', 'string'],
-                'permissions' => ['required', 'array'],
-                'permissions.*' => ['exists:permissions,id'],
-            ]);
+            $validated = $request->validated();
 
             $role->update([
                 'name' => $validated['name'],

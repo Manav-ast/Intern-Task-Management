@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminRequest;
 use App\Models\Admin;
 use App\Models\Role;
 use Illuminate\Http\Request;
@@ -39,18 +40,12 @@ class AdminController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(AdminRequest $request)
     {
         try {
             $this->authorize('create-admins');
 
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'email', 'max:255', 'unique:admins'],
-                'password' => ['required', 'confirmed', Password::defaults()],
-                'roles' => ['required', 'array'],
-                'roles.*' => ['exists:roles,id'],
-            ]);
+            $validated = $request->validated();
 
             $admin = Admin::create([
                 'name' => $validated['name'],
@@ -93,7 +88,7 @@ class AdminController extends Controller
         }
     }
 
-    public function update(Request $request, Admin $admin)
+    public function update(AdminRequest $request, Admin $admin)
     {
         try {
             $this->authorize('edit-admins');
@@ -108,27 +103,14 @@ class AdminController extends Controller
                 return back()->with('swal-error', 'You cannot edit your own account.');
             }
 
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'string', 'email', 'max:255', 'unique:admins,email,' . $admin->id],
-                'password' => ['nullable', 'confirmed', Password::defaults()],
-                'roles' => ['required', 'array'],
-                'roles.*' => ['exists:roles,id'],
-            ]);
-
-            // Check if trying to assign super-admin role
-            if (in_array(Role::where('slug', 'super-admin')->first()->id, $validated['roles'])) {
-                return back()
-                    ->with('swal-error', 'Cannot assign super admin role to other users.')
-                    ->withInput();
-            }
+            $validated = $request->validated();
 
             $admin->update([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
             ]);
 
-            if ($validated['password']) {
+            if (!empty($validated['password'])) {
                 $admin->update(['password' => Hash::make($validated['password'])]);
             }
 

@@ -16,9 +16,9 @@ use App\Models\Message;
 require __DIR__ . '/user.php';
 
 Route::get('/', function () {
-    if (Auth::guard('admin')->check()) {
+    if (admin_guard()->check()) {
         return redirect()->route('admin.dashboard');
-    } elseif (Auth::guard('intern')->check()) {
+    } elseif (intern_guard()->check()) {
         return redirect()->route('intern.dashboard');
     }
     return redirect()->route('intern.login');
@@ -43,8 +43,6 @@ Route::middleware(['auth:intern'])->prefix('intern')->name('intern.chat.')->grou
 Route::prefix('admin')->middleware('guest:admin')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
     Route::post('/login', [AdminAuthController::class, 'login']);
-    Route::get('/register', [AdminAuthController::class, 'showRegisterForm'])->name('admin.register');
-    Route::post('/register', [AdminAuthController::class, 'register']);
 });
 Route::prefix('admin')->middleware('auth:admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');

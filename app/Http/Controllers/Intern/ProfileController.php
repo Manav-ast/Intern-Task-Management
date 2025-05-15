@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Intern;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -14,15 +13,10 @@ class ProfileController extends Controller
         return view('intern.profile');
     }
 
-    public function update(Request $request)
+    public function update(ProfileUpdateRequest $request)
     {
         $intern = intern();
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('interns')->ignore($intern->id)],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-        ]);
+        $validated = $request->validated();
 
         $intern->name = $validated['name'];
         $intern->email = $validated['email'];
