@@ -20,14 +20,14 @@ class CommentController extends Controller
         DB::beginTransaction();
         try {
             // Check if user is authenticated
-            if (!Auth::guard('admin')->check()) {
+            if (!is_admin()) {
                 throw new \Exception('User not authenticated');
             }
 
             // Log the attempt
             Log::info('Attempting to create comment', [
                 'task_id' => $task->id,
-                'admin_id' => auth('admin')->id()
+                'admin_id' => admin_id()
             ]);
 
             $this->authorize('create-comments');
@@ -46,7 +46,7 @@ class CommentController extends Controller
                 'message' => $validated['message']
             ]);
 
-            $comment->commentable()->associate(auth('admin')->user());
+            $comment->commentable()->associate(admin());
 
             if (!$comment->save()) {
                 throw new \Exception('Failed to save comment');
@@ -63,7 +63,7 @@ class CommentController extends Controller
                 'id' => $comment->id,
                 'message' => $comment->message,
                 'created_at' => $comment->created_at->diffForHumans(),
-                'author' => auth('admin')->user()->name,
+                'author' => admin()->name,
                 'deleteUrl' => route('admin.tasks.comments.destroy', [$task, $comment])
             ]);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
@@ -78,7 +78,7 @@ class CommentController extends Controller
             DB::rollBack();
             Log::error('Error creating comment: ' . $e->getMessage(), [
                 'task_id' => $task->id,
-                'admin_id' => auth('admin')->id() ?? 'not authenticated',
+                'admin_id' => admin_id() ?? 'not authenticated',
                 'exception' => get_class($e)
             ]);
             return response()->json(['error' => 'Error creating comment. Please try again.'], 500);
@@ -90,7 +90,7 @@ class CommentController extends Controller
         DB::beginTransaction();
         try {
             // Check if user is authenticated
-            if (!Auth::guard('admin')->check()) {
+            if (!is_admin()) {
                 throw new \Exception('User not authenticated');
             }
 
@@ -98,13 +98,13 @@ class CommentController extends Controller
             Log::info('Attempting to delete comment', [
                 'comment_id' => $comment->id,
                 'task_id' => $task->id,
-                'admin_id' => auth('admin')->id()
+                'admin_id' => admin_id()
             ]);
 
             $this->authorize('delete-comments');
 
             // Check if the comment belongs to the authenticated admin
-            if ($comment->commentable_id !== auth('admin')->id()) {
+            if ($comment->commentable_id !== admin_id()) {
                 throw new \Illuminate\Auth\Access\AuthorizationException('You can only delete your own comments.');
             }
 
@@ -134,7 +134,7 @@ class CommentController extends Controller
             Log::error('Error deleting comment: ' . $e->getMessage(), [
                 'comment_id' => $comment->id,
                 'task_id' => $task->id,
-                'admin_id' => auth('admin')->id() ?? 'not authenticated',
+                'admin_id' => admin_id() ?? 'not authenticated',
                 'exception' => get_class($e)
             ]);
             return response()->json(['error' => 'Error deleting comment. Please try again.'], 500);

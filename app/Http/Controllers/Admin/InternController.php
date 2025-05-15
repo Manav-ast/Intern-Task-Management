@@ -91,19 +91,74 @@ class InternController extends Controller
     public function destroy(Intern $intern)
     {
         try {
-            $this->authorize('delete-interns');
+            // Log the attempt with details
+            Log::info('Attempting to delete intern', [
+                'intern_id' => $intern->id,
+                'intern_name' => $intern->name,
+                'admin_id' => admin_id(),
+                'admin_name' => admin() ? admin()->name : 'Not authenticated'
+            ]);
+
+            // Check authorization
+            try {
+                $this->authorize('delete-interns');
+                Log::info('Admin has delete-interns permission');
+            } catch (\Exception $authException) {
+                Log::error('Authorization error: ' . $authException->getMessage());
+                return response()->json([
+                    'error' => 'You do not have permission to delete interns.'
+                ], 403);
+            }
 
             // Check if intern has any associated tasks
-            if ($intern->tasks()->count() > 0) {
+            $tasks = $intern->tasks;
+            $tasksCount = $tasks->count();
+            Log::info('Intern tasks count: ' . $tasksCount);
+
+            if ($tasksCount > 0) {
+                // Get task info for logging
+                $taskInfo = $tasks->map(function ($task) {
+                    return [
+                        'id' => $task->id,
+                        'title' => $task->title,
+                        'status' => $task->status
+                    ];
+                });
+
+                Log::warning('Cannot delete intern with assigned tasks', [
+                    'intern_id' => $intern->id,
+                    'tasks_count' => $tasksCount,
+                    'tasks' => $taskInfo
+                ]);
+
+                // Include the first few task titles in the message to help the admin
+                $taskTitles = $tasks->take(3)->pluck('title')->implode('", "');
+                $additionalInfo = $tasksCount > 3 ? " and " . ($tasksCount - 3) . " more" : "";
+
+                $errorMessage = "Cannot delete intern with assigned tasks. Please unassign the following tasks first: \"$taskTitles\"$additionalInfo.";
+
                 return response()->json([
-                    'error' => 'Cannot delete intern with assigned tasks. Please unassign tasks first.'
+                    'error' => $errorMessage,
+                    'taskCount' => $tasksCount
                 ], 422);
             }
 
-            $intern->delete();
+            // Attempt to delete the intern
+            $deleteResult = $intern->delete();
+            Log::info('Delete operation result: ' . ($deleteResult ? 'Success' : 'Failed'));
+
+            if (!$deleteResult) {
+                throw new \Exception('Failed to delete intern record');
+            }
+
             return response()->json(['message' => 'Intern deleted successfully']);
         } catch (\Exception $e) {
-            Log::error('Error deleting intern: ' . $e->getMessage());
+            Log::error('Error deleting intern: ' . $e->getMessage(), [
+                'intern_id' => $intern->id ?? 'unknown',
+                'exception' => get_class($e),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'error' => 'Failed to delete intern. Please try again.'
             ], 500);

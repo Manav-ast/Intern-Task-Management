@@ -12,7 +12,7 @@ class TaskController extends Controller
     public function index()
     {
         try {
-            $tasks = auth('intern')->user()->tasks()
+            $tasks = intern()->tasks()
                 ->withCount('comments')
                 ->with(['admin:id,name', 'comments:id,task_id'])
                 ->latest()
@@ -28,7 +28,7 @@ class TaskController extends Controller
     {
         try {
             // Check if the intern is assigned to this task
-            if (!$task->interns->contains(auth('intern')->id())) {
+            if (!$task->interns->contains(intern_id())) {
                 if (request()->wantsJson()) {
                     return response()->json(['message' => 'You are not authorized to view this task.'], 403);
                 }
@@ -48,7 +48,7 @@ class TaskController extends Controller
     {
         try {
             // Verify the intern is assigned to this task
-            if (!$task->interns->contains(auth('intern')->id())) {
+            if (!$task->interns->contains(intern_id())) {
                 return response()->json([
                     'message' => 'You are not authorized to comment on this task.'
                 ], 403);
@@ -66,7 +66,7 @@ class TaskController extends Controller
                 return response()->json(['errors' => $e->errors()], 422);
             }
 
-            $intern = auth('intern')->user();
+            $intern = intern();
 
             // Create the comment
             $comment = $task->comments()->create([

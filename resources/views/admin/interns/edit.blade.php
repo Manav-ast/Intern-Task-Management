@@ -74,7 +74,7 @@
                                 <div class="relative rounded-lg shadow-sm">
                                     <input type="email" name="email" id="email"
                                         class="block w-full px-4 py-3 rounded-lg border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-200 @error('email') border-red-300 @enderror"
-                                        value="{{ old('email', $intern->email) }}" required>
+                                        value="{{ old('email', $intern->email) }}" required disabled>
                                 </div>
                                 @error('email')
                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>

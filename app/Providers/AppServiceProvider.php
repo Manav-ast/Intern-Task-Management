@@ -11,7 +11,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Load helpers
+        $this->loadHelpers();
     }
 
     /**
@@ -20,5 +21,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+    }
+
+    /**
+     * Load helper functions.
+     */
+    protected function loadHelpers(): void
+    {
+        if (file_exists($file = app_path('helpers/helpers.php'))) {
+            require_once $file;
+        }
     }
 }

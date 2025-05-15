@@ -18,11 +18,11 @@ function confirmDelete(title, text, callback) {
 
 // Handle success messages with SweetAlert2
 document.addEventListener('DOMContentLoaded', function () {
-    const success = @json(session('success'));
-    if (success) {
+    // Check for success messages in the DOM
+    if (window.successMessage) {
         Swal.fire({
-            title: success.title || 'Success!',
-            text: success.message,
+            title: window.successMessage.title || 'Success!',
+            text: window.successMessage.text,
             icon: 'success',
             confirmButtonText: 'OK',
             confirmButtonColor: '#4F46E5', // Indigo-600 to match your theme

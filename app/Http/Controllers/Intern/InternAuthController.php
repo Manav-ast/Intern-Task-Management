@@ -25,7 +25,7 @@ class InternAuthController extends Controller
     {
         try {
             $credentials = $request->only('email', 'password');
-            if (Auth::guard('intern')->attempt($credentials)) {
+            if (intern_guard()->attempt($credentials)) {
                 return redirect()->route('intern.dashboard');
             }
             return back()->withErrors(['email' => 'Invalid credentials']);
@@ -56,7 +56,7 @@ class InternAuthController extends Controller
                 'password' => bcrypt($validatedData['password']),
             ]);
 
-            auth('intern')->login($intern);
+            intern_guard()->login($intern);
             return redirect()->route('intern.dashboard');
         } catch (\Exception $e) {
             Log::error('Error during registration: ' . $e->getMessage());
@@ -67,7 +67,7 @@ class InternAuthController extends Controller
     public function logout()
     {
         try {
-            Auth::guard('intern')->logout();
+            intern_guard()->logout();
             return redirect()->route('intern.login');
         } catch (\Exception $e) {
             Log::error('Error during logout: ' . $e->getMessage());

@@ -159,7 +159,7 @@ class AdminController extends Controller
             }
 
             // Prevent admin from deleting themselves
-            if ($admin->id === auth('admin')->id()) {
+            if ($admin->id === admin_id()) {
                 return response()->json([
                     'error' => 'You cannot delete your own account.',
                     'type' => 'error',
@@ -168,7 +168,7 @@ class AdminController extends Controller
             }
 
             // Only super admin can delete other admins
-            if ($admin->hasRole('admin') && !auth('admin')->user()->isSuperAdmin()) {
+            if ($admin->hasRole('admin') && !admin()->isSuperAdmin()) {
                 return response()->json([
                     'error' => 'Only super admin can delete other admins.',
                     'type' => 'error',

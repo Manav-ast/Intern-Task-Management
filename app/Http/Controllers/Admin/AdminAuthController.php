@@ -25,7 +25,7 @@ class AdminAuthController extends Controller
     {
         try {
             $credentials = $request->only('email', 'password');
-            if (Auth::guard('admin')->attempt($credentials)) {
+            if (admin_guard()->attempt($credentials)) {
                 return redirect()->route('admin.dashboard');
             }
             return back()->withErrors(['email' => 'Invalid credentials']);
@@ -56,7 +56,7 @@ class AdminAuthController extends Controller
                 'password' => bcrypt($validatedData['password']),
             ]);
 
-            auth('admin')->login($admin);
+            admin_guard()->login($admin);
             return redirect()->route('admin.dashboard');
         } catch (\Exception $e) {
             Log::error('Error during registration: ' . $e->getMessage());
@@ -67,7 +67,9 @@ class AdminAuthController extends Controller
     public function logout()
     {
         try {
-            Auth::guard('admin')->logout();
+            if (is_admin()) {
+                admin_guard()->logout();
+            }
             return redirect()->route('admin.login');
         } catch (\Exception $e) {
             Log::error('Error during logout: ' . $e->getMessage());

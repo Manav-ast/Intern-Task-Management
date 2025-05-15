@@ -24,7 +24,8 @@
                                 <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                 <input type="email" name="email" id="email"
                                     value="{{ old('email', $admin->email) }}"
-                                    class="p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base">
+                                    class="p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
+                                    disabled>
                                 @error('email')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -56,7 +57,7 @@
                                         <div
                                             class="relative flex items-center p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200">
                                             <div class="flex items-center h-6">
-                                                <input type="checkbox" name="roles[]" value="{{ $role->id }}"
+                                                <input type="radio" name="roles[]" value="{{ $role->id }}"
                                                     id="role_{{ $role->id }}"
                                                     class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                                     {{ in_array($role->id, old('roles', $admin->roles->pluck('id')->toArray())) ? 'checked' : '' }}>
