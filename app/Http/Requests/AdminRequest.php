@@ -45,16 +45,4 @@ class AdminRequest extends FormRequest
         return $rules;
     }
 
-    /**
-     * Handle a passed validation attempt.
-     */
-    protected function passedValidation(): void
-    {
-        if (request()->filled('roles')) {
-            $superAdminRole = Role::where('slug', 'super-admin')->first()?->id;
-            if ($superAdminRole && in_array($superAdminRole, request()->input('roles'))) {
-                abort(422, 'Cannot assign super admin role to other users.');
-            }
-        }
-    }
 }
