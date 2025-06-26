@@ -1,61 +1,100 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Intern Task Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A web application designed to help organizations manage tasks for interns efficiently. The system provides distinct interfaces for Admins and Interns, with features for task assignment, progress tracking, and communication.
 
-## About Laravel
+## About The Project
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This project is a Laravel-based application that facilitates the management of interns and their assigned tasks. Administrators can create, assign, and monitor tasks, while interns can view their tasks, submit their work, and communicate with admins through comments and a real-time chat feature.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Key Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+-   **Role-Based Access Control:** Separate dashboards and permissions for Admins and Interns using `spatie/laravel-permission`.
+-   **Task Management:** Admins can create tasks, assign them to one or more interns, and track their status.
+-   **Comments:** Users can leave comments on tasks for clarification or feedback.
+-   **Real-time Chat:** A messaging system for direct communication between users, powered by Laravel Reverb.
+-   **User Management:** Admins can manage intern and other admin accounts.
 
-## Learning Laravel
+### Built With
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+*   [Laravel](https://laravel.com/) (v12)
+*   [Tailwind CSS](https://tailwindcss.com/)
+*   [Vite](https://vitejs.dev/)
+*   [Pusher / Laravel Reverb](https://laravel.com/docs/broadcasting) for WebSockets
+*   [jQuery](https://jquery.com/) & [Select2](https://select2.org/)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Getting Started
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+To get a local copy up and running, follow these simple steps.
 
-## Laravel Sponsors
+### Prerequisites
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+-   PHP >= 8.2
+-   Composer
+-   Node.js & NPM
+-   A local database (MySQL, PostgreSQL, or SQLite)
 
-### Premium Partners
+### Installation
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+1.  **Clone the repository:**
+    ```sh
+    git clone https://github.com/your_username/your_repository.git
+    cd Intern-Task-Management
+    ```
 
-## Contributing
+2.  **Install PHP dependencies:**
+    ```sh
+    composer install
+    ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3.  **Install NPM dependencies:**
+    ```sh
+    npm install
+    ```
 
-## Code of Conduct
+4.  **Set up your environment file:**
+    -   Copy the example environment file:
+        ```sh
+        cp .env.example .env
+        ```
+    -   Generate an application key:
+        ```sh
+        php artisan key:generate
+        ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+5.  **Configure your `.env` file:**
+    -   Set up your database connection details (`DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
+    -   Ensure `BROADCAST_DRIVER` is set to `reverb` and configure `REVERB_APP_ID`, `REVERB_APP_KEY`, and `REVERB_SECRET`.
 
-## Security Vulnerabilities
+6.  **Run database migrations and seeders:**
+    -   The seeders will create default roles (Admin, Intern) and a default Admin user.
+    ```sh
+    php artisan migrate --seed
+    ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Usage
 
-## License
+This project includes a `concurrently` script to run all necessary development servers with a single command.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```sh
+composer run dev
+```
+
+This command will start:
+- The PHP development server (`php artisan serve`)
+- The Vite asset bundler
+- The queue worker
+- The Pail log viewer
+
+Once running, you can access the application at `http://127.0.0.1:8000`.
+
+**Default Admin Credentials:**
+-   **Email:** admin@example.com
+-   **Password:** password
+
+## Testing
+
+To run the feature and unit tests, use the following command:
+
+```sh
+php artisan test
+```
